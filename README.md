@@ -1,5 +1,5 @@
 # Kinit - Kubernetes OnPremise the "easy" way
-An IaC solution to create minimal Kubernetes OnPremise cluster. The installation is easy, all it takes is to configure some VMs, fill out a form and you get a production ready cluster with High Availability! You don't believe it? Check it out yourself!
+An IaC solution to create minimal Kubernetes OnPremise cluster. The installation is easy, all it takes is to spin up some VMs, fill out a form and you get a production ready cluster with High Availability! You don't believe it? Check it out yourself!
 
 ## Overview
 
