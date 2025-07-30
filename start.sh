@@ -697,7 +697,6 @@ function menuStacked {
 # --- Confirmation Menu Function Non-HA ---
 function confirmMenuStacked {
 
-    ### Output del Recap IN-LINE
     text_masters=""
     for (( c=1; c<=$count_masters; c++ ))
     do
@@ -732,7 +731,6 @@ function confirmMenuStacked {
             Password: $passwd
             " $(stty size)
 
-    # --- Finestra di conferma ---
     if (whiptail --title "Final Confirmation" \
                 --yesno "Do you confirm these settings to proceed with the installation?" $(stty size)); then
         initStacked
@@ -816,10 +814,6 @@ function initStacked {
     ### Playbook for Joining
     echo -e "\nJoining all the Nodes:\n"
     ansible-playbook ./Config/Stacked/playbook_join.yaml -e "JOIN_COMMAND='$JOIN_COMMAND' JOIN_COMMAND_MASTER='$JOIN_COMMAND_MASTER'";
-    if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} There were some problems and the Worker Nodes did not join. ${NC}${RED}ABORT.${NC}"
-        exit 1
-    fi
 
     # --- KubeConfig Setup ---
     for (( c=2; c<=$count_masters; c++ ))

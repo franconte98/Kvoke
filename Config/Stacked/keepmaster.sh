@@ -27,6 +27,3 @@ sed -i 's/buffer.*/buffer: 500/' ~/.config/k9s/config.yml;
 ### Install Weave as a Network Plugin
 VER_LATEST_WEAVE=$(curl --silent -qI https://github.com/weaveworks/weave/releases/latest | awk -F '/' '/^location/ {print  substr($NF, 1, length($NF)-1)}');
 kubectl apply -f https://github.com/weaveworks/weave/releases/download/$VER_LATEST_WEAVE/weave-daemonset-k8s.yaml;
-if [[ $1 == "Docker" ]]; then
-    weave;
-fi

@@ -2,9 +2,9 @@
 
 function initDocker {
     ### Install Docker CRI
-    VER_CRI_DOCKER=$(curl --silent -qI https://github.com/Mirantis/cri-dockerd/releases/latest | awk -F '/' '/^location/ {print  substr($NF, 1, length($NF)-1)}'); 
-    wget https://github.com/Mirantis/cri-dockerd/releases/download/$VER_CRI_DOCKER/cri-dockerd-${VER_CRI_DOCKER#v}.amd64.tgz;
-    tar -xvf cri-dockerd-${VER_CRI_DOCKER#v}.amd64.tgz;
+    VER_CRI_DOCKER=$(curl --silent -qI https://github.com/Mirantis/cri-dockerd/releases/latest | awk -F '/' '/^location/ {print  substr($NF, 1, length($NF)-1)}');
+    wget -O cri-dockerd-${VER_CRI_DOCKER#v}.amd64.tgz https://github.com/Mirantis/cri-dockerd/releases/download/$VER_CRI_DOCKER/cri-dockerd-${VER_CRI_DOCKER#v}.amd64.tgz;
+    tar -xvf cri-dockerd-${VER_CRI_DOCKER#v}.amd64.tgz --overwrite;
     sudo apt install docker.io -y;
     systemctl enable --now docker;
     cd cri-dockerd || exit;
@@ -320,10 +320,10 @@ function initCrio {
 
     ### Pre-Installation Cri-O
     sudo apt-get install -y software-properties-common
-    curl -fsSL https://pkgs.k8s.io/addons:/cri-o:/prerelease:/main/deb/Release.key |
-        sudo gpg --dearmor -o /etc/apt/keyrings/cri-o-apt-keyring.gpg
-    echo "deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://pkgs.k8s.io/addons:/cri-o:/prerelease:/main/deb/ /" |
-        sudo tee /etc/apt/sources.list.d/cri-o.list
+    curl -fsSL https://pkgs.k8s.io/addons:/cri-o:/prerelease:/main/deb/Release.key | \
+    sudo gpg --dearmor -o /etc/apt/keyrings/cri-o-apt-keyring.gpg
+    echo "deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://pkgs.k8s.io/addons:/cri-o:/prerelease:/main/deb/ /" | \
+    sudo tee /etc/apt/sources.list.d/cri-o.list
     sudo apt-get update -y
 
     ### Install, Enable and Start Cri-O
@@ -333,8 +333,8 @@ function initCrio {
 
     ### Install crictl
     VER_CRICTL=$(curl --silent -qI https://github.com/kubernetes-sigs/cri-tools/releases/latest | awk -F '/' '/^location/ {print  substr($NF, 1, length($NF)-1)}');
-    wget https://github.com/kubernetes-sigs/cri-tools/releases/download/$VER_CRICTL/crictl-$VER_CRICTL-linux-amd64.tar.gz
-    sudo tar zxvf crictl-$VER_CRICTL-linux-amd64.tar.gz -C /usr/local/bin
+    wget -O crictl-$VER_CRICTL-linux-amd64.tar.gz https://github.com/kubernetes-sigs/cri-tools/releases/download/$VER_CRICTL/crictl-$VER_CRICTL-linux-amd64.tar.gz
+    sudo tar zxvf crictl-$VER_CRICTL-linux-amd64.tar.gz -C /usr/local/bin --overwrite
     rm -f crictl-$VER_CRICTL-linux-amd64.tar.gz
 }
 
@@ -347,7 +347,7 @@ sudo apt install net-tools;
 sudo apt-get update -y;
 
 ### Retreive the latest version of Kubernetes and store it in $VER_K8S_Latest
-Version_K8S_Latest="$(curl -sSL https://dl.k8s.io/release/stable.txt)"; 
+Version_K8S_Latest="$(curl -sSL https://dl.k8s.io/release/stable.txt)";
 Version_K8S_Stable=$(echo $Version_K8S_Latest | cut -d '.' -f 1)"."$(echo $Version_K8S_Latest | cut -d '.' -f 2);
 
 ### Install Kubernetes components
@@ -384,9 +384,8 @@ esac
 
 ### CNI Plugins
 VER_CNI_PLUGINS=$(curl --silent -qI https://github.com/containernetworking/plugins/releases/latest | awk -F '/' '/^location/ {print  substr($NF, 1, length($NF)-1)}');
-wget https://github.com/containernetworking/plugins/releases/download/$VER_CNI_PLUGINS/cni-plugins-linux-amd64-$VER_CNI_PLUGINS.tgz
-mkdir -p /opt/cni/bin
-tar Cxzvf /opt/cni/bin cni-plugins-linux-amd64-$VER_CNI_PLUGINS.tgz
+wget -O cni-plugins-linux-amd64-$VER_CNI_PLUGINS.tgz https://github.com/containernetworking/plugins/releases/download/$VER_CNI_PLUGINS/cni-plugins-linux-amd64-$VER_CNI_PLUGINS.tgz
+tar Cxzvf /opt/cni/bin cni-plugins-linux-amd64-$VER_CNI_PLUGINS.tgz --overwrite
 
 ### Setup IPV4
 echo "memory swapoff";
@@ -401,9 +400,9 @@ EOF
 ### Install and setup Docker Compose (allow to handle containers, images and volumes through YAMLs) [Retreive the latest]
 if [[ $2 == "Docker" ]]; then
     DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker};
-    mkdir -p $DOCKER_CONFIG/cli-plugins;
-    curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o $DOCKER_CONFIG/cli-plugins/docker-compose;
-    chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose;
+    mkdir -p "$DOCKER_CONFIG/cli-plugins";
+    curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o "$DOCKER_CONFIG/cli-plugins/docker-compose";
+    chmod +x "$DOCKER_CONFIG/cli-plugins/docker-compose";
 fi
 
 ### Install all the necessary components of K8S Architecture right inside Docker

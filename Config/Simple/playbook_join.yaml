@@ -3,7 +3,14 @@
   become: true
   become_method: sudo
   tasks:
+    - name: Check if node is already joined
+      stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: kube_joined_status
+
     - name: Joining all the Worker Nodes
       ansible.builtin.command: "{{ JOIN_COMMAND }}"
-      when: ansible_distribution_file_variety == "Debian"
+      when:
+        - ansible_distribution_file_variety == "Debian"
+        - not kube_joined_status.stat.exists
 ...
