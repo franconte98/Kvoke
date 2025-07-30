@@ -12,6 +12,8 @@ git clone https://github.com/franconte98/Kinit.git
 >Command to easily clone the repository using GIT
 
 ```
-chmod +x Kinit/start.sh && ./start.sh
+cd Kinit/
+
+chmod +x start.sh && ./start.sh
 ```
 >Command to `Run Kinit` (On a Linux Environment)
