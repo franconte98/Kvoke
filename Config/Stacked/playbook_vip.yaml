@@ -1,0 +1,32 @@
+---
+- hosts: masters
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Ensure Keepalived is installed
+      ansible.builtin.apt:
+        name: keepalived
+        state: present
+        update_cache: yes # Update apt cache before installing
+
+    - name: Create Keepalived configuration file for Master
+      ansible.builtin.template:
+        src: keepalived_src.conf
+        dest: /etc/keepalived/keepalived.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart Keepalived Service
+
+    - name: Ensure Keepalived service is running and enabled
+      ansible.builtin.service:
+        name: keepalived
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: Restart Keepalived Service
+      ansible.builtin.service:
+        name: keepalived
+        state: restarted
+...

@@ -1,0 +1,16 @@
+---
+- hosts: all_vms
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Store the initialization file on each VM
+      ansible.builtin.copy:
+        src: ../init.sh
+        dest: /tmp/init.sh
+        mode: '0755'
+      when: ansible_distribution_file_variety == "Debian"
+    
+    - name: Initialize each VM to become a K8S Node [~ 5 minutes]
+      ansible.builtin.command: /tmp/init.sh {{ ansible_host }} {{ cri }}
+      when: ansible_distribution_file_variety == "Debian"
+...

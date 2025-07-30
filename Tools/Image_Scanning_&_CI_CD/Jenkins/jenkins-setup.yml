@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-jenkins
+  namespace: jenkins
+spec:
+  storageClassName: longhorn ### Dipende da che tipo di Provisioner adottiamo
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jenkins
+  namespace: jenkins
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jenkins
+  template:
+    metadata:
+      namespace: jenkins
+      labels:
+        app: jenkins
+    spec:
+      initContainers:
+      ### Init Container change permission to the mountpath
+      - name: volume-mount-permission
+        image: busybox
+        command: ["/bin/chown", "-R", "1000", "/var/jenkins_home"]
+        volumeMounts:
+          - name: jenkins-vol
+            mountPath: /var/jenkins_home
+        securityContext:
+          runAsUser: 0
+      containers:
+      - name: jenkins
+        image: jenkins/jenkins:latest
+        ### Run App as Non-Root (User: Jenkins)
+        securityContext:
+          runAsUser: 1000
+          runAsNonRoot: true
+        ports:
+          - name: http-port
+            containerPort: 8080
+          - name: jnlp-port
+            containerPort: 50000
+        volumeMounts:
+          - name: jenkins-vol
+            mountPath: /var/jenkins_home
+      volumes:
+        - name: jenkins-vol
+          persistentVolumeClaim:
+            claimName: pvc-jenkins
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jenkins
+  namespace: jenkins
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30000
+  selector:
+    app: jenkins
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jenkins-jnlp
+  namespace: jenkins
+spec:
+  type: ClusterIP
+  ports:
+    - port: 50000
+      targetPort: 50000
+  selector:
+    app: jenkins

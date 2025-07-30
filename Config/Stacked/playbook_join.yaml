@@ -1,0 +1,19 @@
+---
+- hosts: masters
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Joining all the Master Nodes
+      ansible.builtin.command: "{{ JOIN_COMMAND_MASTER }}"
+      when:
+        - ansible_distribution_file_variety == "Debian"
+        - ansible_host != master1
+      
+- hosts: workers
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Joining all the Worker Nodes
+      ansible.builtin.command: "{{ JOIN_COMMAND }}"
+      when: ansible_distribution_file_variety == "Debian"
+...
