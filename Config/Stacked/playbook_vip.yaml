@@ -11,7 +11,7 @@
 
     - name: Create Keepalived configuration file for Master
       ansible.builtin.template:
-        src: keepalived_src.conf
+        src: keepalived.conf
         dest: /etc/keepalived/keepalived.conf
         owner: root
         group: root

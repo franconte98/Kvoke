@@ -362,8 +362,8 @@ sudo apt-mark hold kubelet kubeadm kubectl;
 ### Install Helm
 sudo apt-get install apt-transport-https --yes;
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list;
-sudo apt-get update;
-sudo apt-get install helm;
+sudo apt-get update -y;
+sudo apt-get install -y helm;
 
 ### Container Runtime Initialization (CRI)
 case $2 in

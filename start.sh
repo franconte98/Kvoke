@@ -861,7 +861,7 @@ vrrp_instance lb-vips {
     }
 }
 "
-    cat <<EOF > keepalived_src.conf
+    cat <<EOF > /Config/Stacked/keepalived.conf
 $KEEPALIVED_CONFIGURATION_MASTER
 EOF
 
