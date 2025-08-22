@@ -44,6 +44,12 @@ OUTPUT_LOGS="/var/log/kinit/kinit.logs"
 ##                                            Functions                                                                   ##
 ############################################################################################################################
 
+# --- Function called when aborting the execution ---
+abortExec {
+    log "Aborting the execution of Kinit. Check the logs in $OUTPUT_LOGS"
+    exit 1;
+}
+
 # --- Function Used to make Logs ---
 log() {
     echo "$(date +'%Y-%m-%d %H:%M:%S') - $1" | tee -a $OUTPUT_LOGS
@@ -753,7 +759,7 @@ function initStacked {
     ### --- Initialization ---
 
     clear
-    log "${NC}${GREEN}Creating K8S Cluster with STACKED ETCD Configuration${NC}"
+    log "Creating K8S Cluster with STACKED ETCD Configuration"
 
     ### Install Tools
     echo -e "\nInstalling the Tools necessary for initialization:\n"
@@ -771,15 +777,23 @@ function initStacked {
 
     ### Ping Test
     echo -e "\nTesting the Connectivity to all the Nodes:\n"
+    log "Testing the Connectivity to all the Nodes"
     ansible all_vms -m ping;
     if [ $? -ne 0 ]; then
         echo "${NC}${RED}ERROR:${NC} Some VMs are not reachable by Ansible! ${NC}${RED}ABORT.${NC}"
-        exit 1
+        log "ERROR: Some VMs are not reachable by Ansible!"
+        abortExec
     fi
 
     ### Playbook w// init.sh
     echo -e "\nInitiating all the Nodes:\n"
+    log "Initiating all the Nodes"
     ansible-playbook ./Config/Stacked/playbook_init.yaml;
+    if [ $? -ne 0 ]; then
+        echo "${NC}${RED}ERROR:${NC} Something went wrong initiating the nodes! ${NC}${RED}ABORT.${NC}"
+        log "ERROR: Something went wrong initiating the nodes!"
+        abortExec
+    fi
 
     ### Setup the Network for Load Balancing
     network_interface="$(ip a | grep ${master_ips[1]} | awk '{ print $NF }')";
@@ -790,11 +804,18 @@ function initStacked {
 
     ### Creating the Cluster
     echo -e "\nCluster Initialization:\n"
+    log "Initiating the cluster with Kubeadm"
     ./Config/Stacked/stackedinit.sh ${master_ips[1]} $cri $lb_ip $username
+    if [ $? -ne 0 ]; then
+        echo "${NC}${RED}ERROR:${NC} Something went wrong initiating the cluster with Kubeadm! ${NC}${RED}ABORT.${NC}"
+        log "ERROR: Something went wrong initiating the cluster with Kubeadm!"
+        abortExec
+    fi
 
     ### --- Join + Setup ---
 
     ### Load Certificates
+    log "Loading the Certificates to all the Master Nodes"
     loadCerts
 
     ### Join Nodes
@@ -820,7 +841,13 @@ function initStacked {
 
     ### Playbook for Joining
     echo -e "\nJoining all the Nodes:\n"
+    log "Joining all the Nodes in the Cluster"
     ansible-playbook ./Config/Stacked/playbook_join.yaml -e "JOIN_COMMAND='$JOIN_COMMAND' JOIN_COMMAND_MASTER='$JOIN_COMMAND_MASTER'";
+    if [ $? -ne 0 ]; then
+        echo "${NC}${RED}ERROR:${NC} Something went wrong Joining the Nodes in the Cluster! ${NC}${RED}ABORT.${NC}"
+        log "ERROR: Something went wrong Joining the Nodes in the Cluster!"
+        abortExec
+    fi
 
     # --- KubeConfig Setup ---
     for (( c=2; c<=$count_masters; c++ ))
@@ -876,15 +903,18 @@ EOF
 
     ### Configure KeepAliveD on Master Nodes
     echo -e "\nInstalling and Configuring KeepAliveD:\n"
+    log "Installing and Configuring KeepAliveD"
     ansible-playbook ./Config/Stacked/playbook_vip.yaml;
     if [ $? -ne 0 ]; then
         echo "${NC}${RED}ERROR:${NC} There were some problems and the KeepAliveD was NOT proprely configured ${NC}${RED}ABORT.${NC}"
-        exit 1
+        log "ERROR: Something went wrong Joining the Nodes in the Cluster!"
+        abortExec
     fi
 
     #ip add del $lb_ip/32 dev $network_interface; 
 
     # --- Tools Configuration ---
+    log "Installing necessary tools"
     ./Config/Stacked/keepmaster.sh $cri
 
     ### IPAddressPool for MetalLB
