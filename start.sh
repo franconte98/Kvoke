@@ -865,7 +865,7 @@ vrrp_instance lb-vips {
     cat <<EOF > keepalived.conf
 $KEEPALIVED_CONFIGURATION_MASTER
 EOF
-    mv keepalived.conf Kinit/Config/Stacked/
+    mv keepalived.conf Config/Stacked/
 
     ### Configure KeepAliveD on Master Nodes
     echo -e "\nInstalling and Configuring KeepAliveD:\n"
