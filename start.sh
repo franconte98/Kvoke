@@ -46,7 +46,7 @@ OUTPUT_LOGS="/var/log/kinit/kinit.logs"
 
 # --- Function called when aborting the execution ---
 function abortExec {
-    log "Aborting the execution of Kinit. Check the logs in $OUTPUT_LOGS"
+    echo "Aborting the execution of Kinit. Check the logs in $OUTPUT_LOGS"
     exit 1;
 }
 
@@ -772,7 +772,7 @@ function initStacked {
     log "Creating K8S Cluster with STACKED ETCD Configuration"
 
     ### Install Tools
-    log "Installing the Tools necessary for initialization"
+    log "Installing all the necessary Tools"
     sudo apt update;
     sudo apt install sshpass -y;
     sudo apt install software-properties-common -y;
@@ -795,13 +795,16 @@ function initStacked {
     fi
 
     ### Check if nodes are already part of a K8S Cluster 
-    log "Testing if the nodes are already part of a K8S Cluster"
-    ansible all_vms -b -m shell -a "kubectl get nodes -o jsonpath='{.items[0].metadata.name}'" -e 'ansible_python_interpreter=/usr/bin/python3'
-    if [ $? -eq 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} Some VMs seem to be already part of a K8S Cluster! ${NC}${RED}ABORT.${NC}"
-        log "ERROR: Some VMs seem to be already part of a K8S Cluster!"
-        abortExec
-    else
+    log "Testing if the Nodes are already part of a K8S Cluster"
+    for node in $(ansible all_vms --list-hosts | grep -v 'hosts'); do
+        ansible $node -b -m shell -a "kubectl get nodes" -e 'ansible_python_interpreter=/usr/bin/python3'
+        
+        if [ $? -eq 0 ]; then
+            echo "${NC}${RED}ERRORE:${NC} The node with IP '$node' seems to be already part of a K8S Cluster! ${NC}${RED}ABORT.${NC}"
+            log "ERROR: The node with IP '$node' seems to be already part of a K8S Cluster!"
+            abortExec
+        fi
+    done
 
     ### Playbook w// init.sh
     log "Initiating all the Nodes"
@@ -820,7 +823,7 @@ function initStacked {
     ### --- Creation ---
 
     ### Creating the Cluster
-    log "Initiating the cluster with Kubeadm"
+    log "Creating the cluster with Kubeadm"
     ./Config/Stacked/stackedinit.sh ${master_ips[1]} $cri $lb_ip $username
     if [ $? -ne 0 ]; then
         echo "${NC}${RED}ERROR:${NC} Something went wrong initiating the cluster with Kubeadm! ${NC}${RED}ABORT.${NC}"
@@ -928,7 +931,7 @@ EOF
     #ip add del $lb_ip/32 dev $network_interface; 
 
     # --- Tools Configuration ---
-    log "Installing necessary tools"
+    log "Installing all additional Tools for the Cluster"
     ./Config/Stacked/keepmaster.sh $cri
 
     ### IPAddressPool for MetalLB
