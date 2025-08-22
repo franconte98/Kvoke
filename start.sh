@@ -928,5 +928,7 @@ EOF
 ##                                            Executive Section                                                           ##
 ############################################################################################################################
 
+mkdir /var/log/kinit/
+touch /var/log/kinit/kinit.logs
 clear
 mainMenu
