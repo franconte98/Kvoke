@@ -753,7 +753,7 @@ function initStacked {
     ### --- Initialization ---
 
     clear
-    log "Creating K8S Cluster with STACKED ETCD Configuration"
+    log "${NC}${GREEN}Creating K8S Cluster with STACKED ETCD Configuration${NC}"
 
     ### Install Tools
     echo -e "\nInstalling the Tools necessary for initialization:\n"
