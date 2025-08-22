@@ -38,10 +38,16 @@ network_interface=""
 ### Tools
 cri=""
 OUTPUT_FILE="hosts"
+OUTPUT_LOGS="/var/log/kinit/kinit.logs"
 
 ############################################################################################################################
 ##                                            Functions                                                                   ##
 ############################################################################################################################
+
+# --- Function Used to make Logs ---
+log() {
+    echo "$(date +'%Y-%m-%d %H:%M:%S') - $1" | tee -a $OUTPUT_LOGS
+}
 
 # --- Simple Function to Make sure there is a Min-Max on a given Value ---
 function validate_range() {
@@ -747,6 +753,7 @@ function initStacked {
     ### --- Initialization ---
 
     clear
+    log "Creating K8S Cluster with STACKED ETCD Configuration"
 
     ### Install Tools
     echo -e "\nInstalling the Tools necessary for initialization:\n"
@@ -875,41 +882,40 @@ EOF
         exit 1
     fi
 
-    # --- Restart/Reset KeepAliveD ---
-    ip add del $lb_ip/32 dev $network_interface;
+    #ip add del $lb_ip/32 dev $network_interface; 
 
     # --- Tools Configuration ---
     ./Config/Stacked/keepmaster.sh $cri
 
-    # --- IPAddressPool for MetalLB ---
+    ### IPAddressPool for MetalLB
     cat <<-EOF | kubectl apply -f -
-    apiVersion: metallb.io/v1beta1
-    kind: IPAddressPool
-    metadata:
-        name: first-pool
-        namespace: metallb-system
-    spec:
-        addresses:
-        - $show_range
-        autoAssign: true
-    ---
-    apiVersion: metallb.io/v1beta1
-    kind: L2Advertisement
-    metadata:
-        name: l2
-        namespace: metallb-system
-    spec:
-        ipAddressPools:
-        - first-pool
-    ---
-    apiVersion: metallb.io/v1beta1
-    kind: BGPAdvertisement
-    metadata:
-        name: example
-        namespace: metallb-system
-    spec:
-        ipAddressPools:
-        - first-pool
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+    name: first-pool
+    namespace: metallb-system
+spec:
+    addresses:
+    - $show_range
+    autoAssign: true
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+    name: l2
+    namespace: metallb-system
+spec:
+    ipAddressPools:
+    - first-pool
+---
+apiVersion: metallb.io/v1beta1
+kind: BGPAdvertisement
+metadata:
+    name: example
+    namespace: metallb-system
+spec:
+    ipAddressPools:
+    - first-pool
 EOF
 
     ### Final Message
