@@ -45,13 +45,13 @@ OUTPUT_LOGS="/var/log/kinit/kinit.logs"
 ############################################################################################################################
 
 # --- Function called when aborting the execution ---
-abortExec {
+function abortExec {
     log "Aborting the execution of Kinit. Check the logs in $OUTPUT_LOGS"
     exit 1;
 }
 
 # --- Function Used to make Logs ---
-log() {
+function log() {
     echo "$(date +'%Y-%m-%d %H:%M:%S') - $1" | tee -a $OUTPUT_LOGS
 }
 
