@@ -415,7 +415,7 @@ function initSimple {
     log "Creating K8S Cluster with SIMPLE Configuration"
 
     ### Install Tools
-    log "Installing the Tools necessary for initialization"
+    log "Installing all the necessary Tools"
     sudo apt update;
     sudo apt install sshpass -y;
     sudo apt install software-properties-common -y;
@@ -437,6 +437,18 @@ function initSimple {
         abortExec
     fi
 
+    ### Check if nodes are already part of a K8S Cluster 
+    log "Testing if the Nodes are already part of a K8S Cluster"
+    for node in $(ansible all_vms --list-hosts | grep -v 'hosts'); do
+        ansible $node -b -m shell -a "kubectl get nodes" -e 'ansible_python_interpreter=/usr/bin/python3'
+        
+        if [ $? -eq 0 ]; then
+            echo "${NC}${RED}ERRORE:${NC} The node with IP '$node' seems to be already part of a K8S Cluster! ${NC}${RED}ABORT.${NC}"
+            log "ERROR: The node with IP '$node' seems to be already part of a K8S Cluster!"
+            abortExec
+        fi
+    done
+
     ### Playbook w// init.sh
     log "Initiating all the Nodes"
     ansible-playbook ./Config/Simple/playbook_init.yaml;
@@ -449,7 +461,7 @@ function initSimple {
     ### --- Creation ---
 
     ### Creating the Cluster
-    log "Creating the Cluster"
+    log "Creating the Cluster and Installing all the additional tools for the Cluster"
     ./Config/Simple/masterinit.sh $ip_master $cri
     if [ $? -ne 0 ]; then
         echo "${NC}${RED}ERROR:${NC} Something went wrong initiating the cluster with Kubeadm! ${NC}${RED}ABORT.${NC}"
