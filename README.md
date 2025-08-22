@@ -1,7 +1,7 @@
 # Kinit - Kubernetes OnPremise the "easy" way
 
 ```
-git clone https://github.com/franconte98/Kinit.git
+git clone https://github.com/Kinitialize/Kinitialize.git
 ```
 >Command to easily clone the repository using GIT
 
