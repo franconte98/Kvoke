@@ -3,26 +3,22 @@
 # Initialization based on CRI
 # Check if Kubernetes is already initialized on this node
 # This checks for the existence of the admin.conf file, which indicates a control plane is set up.
-if [ -f "/etc/kubernetes/admin.conf" ]; then
-    echo "Kubernetes control plane already initialized on this node. Skipping kubeadm init."
-else
-    case $2 in
-        "Docker")
-            sudo kubeadm init --upload-certs --control-plane-endpoint="$1" --apiserver-advertise-address="$1" --ignore-preflight-errors=all --cri-socket unix:///var/run/cri-dockerd.sock;
-            ;;
-        "Containerd")
-            sudo kubeadm init --upload-certs --control-plane-endpoint="$1" --apiserver-advertise-address="$1" --ignore-preflight-errors=all --cri-socket unix:///run/containerd/containerd.sock;
-            ;;
-        "CRI-O")
-            sudo kubeadm init --upload-certs --control-plane-endpoint="$1" --apiserver-advertise-address="$1" --ignore-preflight-errors=all --cri-socket unix:///var/run/crio/crio.sock;
-            ;;
-        *)
-            clear
-            echo -e "\nInvalid Option!\n"
-            exit 1
-            ;;
-    esac
-fi
+case $2 in
+    "Docker")
+        sudo kubeadm init --upload-certs --control-plane-endpoint="$1" --apiserver-advertise-address="$1" --ignore-preflight-errors=all --cri-socket unix:///var/run/cri-dockerd.sock;
+        ;;
+    "Containerd")
+        sudo kubeadm init --upload-certs --control-plane-endpoint="$1" --apiserver-advertise-address="$1" --ignore-preflight-errors=all --cri-socket unix:///run/containerd/containerd.sock;
+        ;;
+    "CRI-O")
+        sudo kubeadm init --upload-certs --control-plane-endpoint="$1" --apiserver-advertise-address="$1" --ignore-preflight-errors=all --cri-socket unix:///var/run/crio/crio.sock;
+        ;;
+    *)
+        clear
+        echo -e "\nInvalid Option!\n"
+        exit 1
+        ;;
+esac
 
 mkdir -p "$HOME/.kube";
 sudo cp -f /etc/kubernetes/admin.conf "$HOME/.kube/config";

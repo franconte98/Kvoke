@@ -412,9 +412,10 @@ function initSimple {
     ### --- Initialization ---
 
     clear
+    log "Creating K8S Cluster with SIMPLE Configuration"
 
     ### Install Tools
-    echo -e "\nInstalling the Tools necessary for initialization:\n"
+    log "Installing the Tools necessary for initialization"
     sudo apt update;
     sudo apt install sshpass -y;
     sudo apt install software-properties-common -y;
@@ -428,26 +429,33 @@ function initSimple {
     inventorySimple
 
     ### Ping Test
-    echo -e "\nTesting the Connectivity to all the Nodes:\n"
+    log "Testing the Connectivity to all the Nodes"
     ansible all_vms -m ping;
     if [ $? -ne 0 ]; then
         echo "${NC}${RED}ERROR:${NC} Some VMs are not reachable by Ansible! ${NC}${RED}ABORT.${NC}"
-        exit 1
+        log "ERROR: Some VMs are not reachable by Ansible!"
+        abortExec
     fi
 
     ### Playbook w// init.sh
-    echo -e "\nInitiating all the Nodes:\n"
+    log "Initiating all the Nodes"
     ansible-playbook ./Config/Simple/playbook_init.yaml;
     if [ $? -ne 0 ]; then
         echo "${NC}${RED}ERROR:${NC} There were some problems and the Initiation did not succeed. ${NC}${RED}ABORT.${NC}"
-        exit 1
+        log "ERROR: Some VMs are not reachable by Ansible!"
+        abortExec
     fi
 
     ### --- Creation ---
 
     ### Creating the Cluster
-    echo -e "\nCreating the Cluster:\n"
+    log "Creating the Cluster"
     ./Config/Simple/masterinit.sh $ip_master $cri
+    if [ $? -ne 0 ]; then
+        echo "${NC}${RED}ERROR:${NC} Something went wrong initiating the cluster with Kubeadm! ${NC}${RED}ABORT.${NC}"
+        log "ERROR: Something went wrong initiating the cluster with Kubeadm!"
+        abortExec
+    fi
 
     ### --- Join + Setup ---
 
@@ -470,11 +478,12 @@ function initSimple {
     esac
 
     ### Playbook for Joining
-    echo -e "\nJoining all the Nodes:\n"
+    log "Joining all the Nodes"
     ansible-playbook ./Config/Simple/playbook_join.yaml -e "JOIN_COMMAND='$JOIN_COMMAND'";
     if [ $? -ne 0 ]; then
         echo "${NC}${RED}ERROR:${NC} There were some problems and the Worker Nodes did not join. ${NC}${RED}ABORT.${NC}"
-        exit 1
+        log "ERROR: Some VMs are not reachable by Ansible!"
+        abortExec
     fi
 
     ### IPAddressPool for MetalLB
@@ -509,8 +518,9 @@ spec:
 EOF
 
     ### End Of Process
+    log "Installation and Configuration are done!"
     echo -e "\n${NC}${GREEN}#######################################################################################${NC}\n"
-    echo -e "\n Installation and configuration are done! Check your cluster using the 'k9s' command.\n"
+    echo -e "\n Installation and Configuration are done! Check your cluster using the 'k9s' command.\n"
     echo -e "\n${NC}${GREEN}#######################################################################################${NC}\n"
 }
 
@@ -762,7 +772,7 @@ function initStacked {
     log "Creating K8S Cluster with STACKED ETCD Configuration"
 
     ### Install Tools
-    echo -e "\nInstalling the Tools necessary for initialization:\n"
+    log "Installing the Tools necessary for initialization"
     sudo apt update;
     sudo apt install sshpass -y;
     sudo apt install software-properties-common -y;
@@ -776,7 +786,6 @@ function initStacked {
     inventoryStacked
 
     ### Ping Test
-    echo -e "\nTesting the Connectivity to all the Nodes:\n"
     log "Testing the Connectivity to all the Nodes"
     ansible all_vms -m ping;
     if [ $? -ne 0 ]; then
@@ -785,8 +794,16 @@ function initStacked {
         abortExec
     fi
 
+    ### Check if nodes are already part of a K8S Cluster 
+    log "Testing if the nodes are already part of a K8S Cluster"
+    ansible all_vms -b -m shell -a "kubectl get nodes -o jsonpath='{.items[0].metadata.name}'" -e 'ansible_python_interpreter=/usr/bin/python3'
+    if [ $? -eq 0 ]; then
+        echo "${NC}${RED}ERROR:${NC} Some VMs seem to be already part of a K8S Cluster! ${NC}${RED}ABORT.${NC}"
+        log "ERROR: Some VMs seem to be already part of a K8S Cluster!"
+        abortExec
+    else
+
     ### Playbook w// init.sh
-    echo -e "\nInitiating all the Nodes:\n"
     log "Initiating all the Nodes"
     ansible-playbook ./Config/Stacked/playbook_init.yaml;
     if [ $? -ne 0 ]; then
@@ -803,7 +820,6 @@ function initStacked {
     ### --- Creation ---
 
     ### Creating the Cluster
-    echo -e "\nCluster Initialization:\n"
     log "Initiating the cluster with Kubeadm"
     ./Config/Stacked/stackedinit.sh ${master_ips[1]} $cri $lb_ip $username
     if [ $? -ne 0 ]; then
@@ -840,7 +856,6 @@ function initStacked {
     esac
 
     ### Playbook for Joining
-    echo -e "\nJoining all the Nodes:\n"
     log "Joining all the Nodes in the Cluster"
     ansible-playbook ./Config/Stacked/playbook_join.yaml -e "JOIN_COMMAND='$JOIN_COMMAND' JOIN_COMMAND_MASTER='$JOIN_COMMAND_MASTER'";
     if [ $? -ne 0 ]; then
@@ -902,7 +917,6 @@ EOF
     mv keepalived.conf Config/Stacked/
 
     ### Configure KeepAliveD on Master Nodes
-    echo -e "\nInstalling and Configuring KeepAliveD:\n"
     log "Installing and Configuring KeepAliveD"
     ansible-playbook ./Config/Stacked/playbook_vip.yaml;
     if [ $? -ne 0 ]; then
@@ -949,8 +963,9 @@ spec:
 EOF
 
     ### Final Message
+    log "Installation and Configuration are done!"
     echo -e "\n${NC}${GREEN}#######################################################################################${NC}\n"
-    echo -e "\n Installation and configuration are done! Check your cluster using the 'k9s' command.\n"
+    echo -e "\n Installation and Configuration are done! Check your cluster using the 'k9s' command.\n"
     echo -e "\n${NC}${GREEN}#######################################################################################${NC}\n"
 }
 
