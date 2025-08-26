@@ -373,7 +373,16 @@ function confirmMenuSimple {
 
     ### RECAP
     whiptail --title "Configuration Overview" \
-            --msgbox "$CONFIRM_1" $(stty size)
+            --msgbox "Adopted configuration: Basic Non-High Availability Setup\n
+Number of Working Nodes: $count_workers\n
+Master IP $ip_master\n
+$dialog_text
+IPAddressPool for LB: $show_range\n
+Container Runtime: $cri\n\n
+Credentials SSH non-ROOT:\n
+Username: $username
+Password: $passwd
+" $(stty size)
 
     if (whiptail --title "Final Confirmation" \
                 --yesno "Do you confirm these settings to proceed with the installation?" $(stty size)); then
