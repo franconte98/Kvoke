@@ -4,7 +4,7 @@
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
-[![Unlicense License][license-shield]][license-url]
+[![License: BSD 3-Clause][license-shield]][license-url]
 
 <br />
 <div align="center">
@@ -109,15 +109,14 @@ For optimal performance and minimal latency, it's recommended that you run Kinit
 
 Distributed under the BSD-3-Clause license License. See `LICENSE` for more information.
 
-[contributors-shield]: https://img.shields.io/github/contributors/othneildrew/Best-README-Template.svg?style=for-the-badge
+[contributors-shield]: https://img.shields.io/github/contributors/franconte98/Kinit.svg?style=for-the-badge
 [contributors-url]: https://github.com/franconte98/Kinit/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/othneildrew/Best-README-Template.svg?style=for-the-badge
+[forks-shield]: https://img.shields.io/github/forks/franconte98/Kinit.svg?style=for-the-badge
 [forks-url]: https://github.com/franconte98/Kinit/forks
-[stars-shield]: https://img.shields.io/github/stars/othneildrew/Best-README-Template.svg?style=for-the-badge
+[stars-shield]: https://img.shields.io/github/stars/franconte98/Kinit.svg?style=for-the-badge
 [stars-url]: https://github.com/franconte98/Kinit/stargazers
-[issues-shield]: https://img.shields.io/github/issues/othneildrew/Best-README-Template.svg?style=for-the-badge
-[issues-url]: https://github.com/othneildrew/franconte98/Kinit/issues
-[license-shield]: https://img.shields.io/github/license/othneildrew/Best-README-Template.svg?style=for-the-badge
+[issues-shield]: https://img.shields.io/github/issues/franconte98/Kinit.svg?style=for-the-badge
+[issues-url]: https://github.com/franconte98/Kinit/issues
+[license-shield]: https://img.shields.io/badge/License-BSD%203--Clause-blue.svg?style=for-the-badge
 [license-url]: https://github.com/franconte98/Kinit/blob/main/LICENSE
-[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [product-screenshot]: images/screenshot.png
