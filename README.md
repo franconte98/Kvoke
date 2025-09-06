@@ -105,6 +105,28 @@ For optimal performance and minimal latency, it's recommended that you run Kinit
 
 - <b>To Join a Node:</b> Execute Kinit directly on the node you wish to add to an existing cluster. Follow the on-screen prompts and select the "Join" option when prompted.
 
+## About Kinit
+
+`Kinit` offers a unique approach to on-premise Kubernetes deployment. Unlike solutions that abstract away the cluster's core components, `Kinit` utilizes kubeadm to create a standard, vendor-neutral Kubernetes cluster. This means your cluster is built with the same robust tools you would use for a manual configuration, guaranteeing long-term stability and compatibility with the wider Kubernetes ecosystem.
+
+This method provides two key advantages:
+
+<b>Transparency:</b> You get a standard kubeadm cluster, not a custom-built solution, making it easier to troubleshoot and manage.
+
+<b>Minimalism:</b> Kinit avoids unnecessary software, focusing on a lean and efficient cluster that's production-ready out of the box.
+
+Additionally, Kinit installs a curated selection of minimal yet extremely useful tools to extend your cluster's capabilities:
+
+- <ins>k9s:</ins> A terminal-based UI to interact with your Kubernetes cluster. It provides a real-time, intuitive interface for managing applications and resources.
+
+- <ins>NGINX Ingress Controller:</ins> An Ingress controller that uses a standard NGINX web server to provide HTTP and HTTPS routing to services within your cluster.
+
+- <ins>KGateway:</ins> An open-source, lightweight API gateway for Kubernetes.
+
+- <ins>MetalLB:</ins> A load-balancer implementation for bare metal Kubernetes clusters. It provides a network load-balancer using standard routing protocols.
+
+- <ins>Weave:</ins> A simple and lightweight networking solution that creates a virtual network connecting all your Kubernetes pods. It is used as the Container Network Interface (CNI).
+
 ## License
 
 Distributed under the BSD-3-Clause license License. See `LICENSE` for more information.
