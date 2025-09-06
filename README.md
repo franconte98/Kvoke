@@ -5,7 +5,6 @@
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![Unlicense License][license-shield]][license-url]
-[![LinkedIn][linkedin-shield]][linkedin-url]
 
 <br />
 <div align="center">
@@ -52,64 +51,73 @@ For environments that demand high availability, the Stacked ETCD configuration i
 
 ## Getting Started
 
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
+Once your infrastructure is in place, the cluster creation process is streamlined. Minimal configuration is required on the virtual machines themselves; the primary task is to ensure they meet the following technical specifications.
 
 ### Prerequisites
 
-This is an example of how to list things you need to use the software and how to install them.
-* npm
-  ```sh
-  npm install npm@latest -g
-  ```
+This project requires a pre-configured infrastructure of virtual machines that adhere to the following technical prerequisites:
+
+<ins>Network Configuration:</ins> All virtual machines must have a static IP address assigned to a single, shared network. This ensures consistent and reliable inter-node communication.
+
+<ins>User and Permissions:</ins> A unique user account with identical credentials and sudo privileges must exist across all virtual machines.
+
+<ins>Minimum System Requirements:</ins> Each virtual machine must meet or exceed the following specifications to function optimally as a Kubernetes node:
+
+- <b>CPU:</b> 2 vCPUs
+
+- <b>RAM:</b> 2 GB
+
+- <b>Storage:</b> 25 GB of available disk space
 
 ### Installation
 
-_Below is an example of how you can instruct your audience on installing and setting up your app. This template doesn't rely on any external dependencies or services._
+`Kinit` can be executed from any environment with network access to your target virtual machines, including a separate host or one of the VMs destined to be a Kubernetes node.
 
-1. Get a free API Key at [https://example.com](https://example.com)
-2. Clone the repo
-   ```sh
-   git clone https://github.com/github_username/repo_name.git
-   ```
-3. Install NPM packages
-   ```sh
-   npm install
-   ```
-4. Enter your API in `config.js`
-   ```js
-   const API_KEY = 'ENTER YOUR API';
-   ```
-5. Change git remote url to avoid accidental pushes to base project
-   ```sh
-   git remote set-url origin github_username/repo_name
-   git remote -v # confirm the changes
-   ```
+For optimal performance and minimal latency, it's recommended that you run Kinit directly from the machine designated as your primary master node.
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+1. <b>Clone the Repository</b>
+
+   First, connect to your target node and clone the Kinit repository.
+   ```sh
+   git clone https://github.com/franconte98/Kinit.git
+   ```
+2. <b>Grant Execution Permissions</b>
+
+   Navigate into the newly created Kinit directory and grant execute permissions to the main script.
+   ```sh
+   cd /Kinit && chmod +x start.sh
+   ```
+3. <b>Execute the Script</b>
+
+   Run the start.sh script to begin the setup process.
+   ```sh
+   ./start.sh
+   ```
+4. <b>Follow the On-Screen Prompts</b>
+
+   The script will guide you through a series of prompts to configure and deploy your desired Kubernetes infrastructure. Simply follow the instructions displayed in your terminal.
 
 ## Usage
 
-Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
+`Kinit` is a versatile tool designed to handle both cluster creation and node joining.
 
-_For more examples, please refer to the [Documentation](https://example.com)_
+- <b>To Create a Cluster:</b> Run Kinit from a machine on the same network as your virtual machines. The script will guide you through the process of setting up your desired cluster topology.
+
+- <b>To Join a Node:</b> Execute Kinit directly on the node you wish to add to an existing cluster. Follow the on-screen prompts and select the "Join" option when prompted.
 
 ## License
 
-Distributed under the Unlicense License. See `LICENSE.txt` for more information.
+Distributed under the BSD-3-Clause license License. See `LICENSE` for more information.
 
-<!-- MARKDOWN LINKS & IMAGES -->
-<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 [contributors-shield]: https://img.shields.io/github/contributors/othneildrew/Best-README-Template.svg?style=for-the-badge
-[contributors-url]: https://github.com/othneildrew/Best-README-Template/graphs/contributors
+[contributors-url]: https://github.com/franconte98/Kinit/graphs/contributors
 [forks-shield]: https://img.shields.io/github/forks/othneildrew/Best-README-Template.svg?style=for-the-badge
-[forks-url]: https://github.com/othneildrew/Best-README-Template/network/members
+[forks-url]: https://github.com/franconte98/Kinit/forks
 [stars-shield]: https://img.shields.io/github/stars/othneildrew/Best-README-Template.svg?style=for-the-badge
-[stars-url]: https://github.com/othneildrew/Best-README-Template/stargazers
+[stars-url]: https://github.com/franconte98/Kinit/stargazers
 [issues-shield]: https://img.shields.io/github/issues/othneildrew/Best-README-Template.svg?style=for-the-badge
-[issues-url]: https://github.com/othneildrew/Best-README-Template/issues
+[issues-url]: https://github.com/othneildrew/franconte98/Kinit/issues
 [license-shield]: https://img.shields.io/github/license/othneildrew/Best-README-Template.svg?style=for-the-badge
-[license-url]: https://github.com/othneildrew/Best-README-Template/blob/master/LICENSE.txt
+[license-url]: https://github.com/franconte98/Kinit/blob/main/LICENSE
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: https://linkedin.com/in/othneildrew
 [product-screenshot]: images/screenshot.png
