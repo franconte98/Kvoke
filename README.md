@@ -85,7 +85,7 @@ For optimal performance and minimal latency, it's recommended that you run Kinit
 
    Navigate into the newly created Kinit directory and grant execute permissions to the main script.
    ```sh
-   cd /Kinit && chmod +x start.sh
+   cd Kinit && chmod +x start.sh
    ```
 3. <b>Execute the Script</b>
 
