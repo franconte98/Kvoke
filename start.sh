@@ -1,47 +1,7 @@
 #!/bin/bash
 
-############################################################################################################################
-##                                                  Variables                                                             ##
-############################################################################################################################
-
-### --- Whiptail Color ---
-export NEWT_COLORS='
-root=,gray
-'
-
-### --- Import Texts ---
-source ./texts.sh
-
-# --- ANSI Colors ---
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
-# --- Global Variables ---
-
-### Functional Variables
-CONF_CHOICE=""
-declare -A worker_ips
-declare -A master_ips
-count_workers=0
-count_masters=0
-ip_master=""
-username=""
-passwd=""
-choose_cidr=false
-ip_min=""
-ip_max=""
-lb_cidr=""
-show_range=""
-lb_ip=""
-network_interface=""
-
-### Tools
-cri=""
-OUTPUT_FILE="hosts"
-OUTPUT_LOGS="/var/log/kinit/kinit.logs"
+### --- Import Environments---
+source ./environment.sh
 
 ############################################################################################################################
 ##                                            Functions                                                                   ##
@@ -86,7 +46,7 @@ function mainMenu {
 
     # --- First Choice ---
     CHOICE=$(whiptail --title "Choose an Option" \
-        --menu "Select what you wanna do right now." 20 70 \
+        --menu "Select what you wanna do right now." 20 70 2 \
         "1" "Create a Kinit Cluster" \
         "2" "Join a Node to a Kinit Cluster" \
         3>&1 1>&2 2>&3)
@@ -214,8 +174,8 @@ function createMenu {
 
     # --- First Option for Creation ---
     CONF_CHOICE=$(whiptail --title "Configuration Options" \
-        --menu "Select which cluster configuration you wanna instantiate." $(stty size) 4 \
-        "1" "Basic Non-High Availabile Configuration (less-infrastructure)" \
+        --menu "Based on the documentation, select which configuration you wanna instantiate for your Kinit cluster." 20 70 3 \
+        "1" "Simple Configuration (NON-HA)" \
         "2" "Stacked Configuration (HA)" \
         3>&1 1>&2 2>&3)
 
@@ -285,11 +245,11 @@ function inventorySimple {
 function menuSimple {
 
     whiptail --title "Basic Non-High Availability Setup" \
-        --msgbox "$WELCOME_1" $(stty size)
+        --msgbox "$WELCOME_1" 30 100
 
     ### Number of Working Nodes
-    count_workers=$(whiptail --title "Number of Working Nodes" \
-        --inputbox "Select the number of Working Node (from 1 up to 10)." $(stty size) \
+    count_workers=$(whiptail --title "Select the number of Working Nodes" \
+        --inputbox "Type the desired number of Working Nodes for your cluster (from 1 up to 10)." 10 60 \
         "2" \
         3>&1 1>&2 2>&3)
     if ! validate_range "$count_workers" "0" "11"; then
@@ -299,56 +259,56 @@ function menuSimple {
     fi
 
     ### Master Node's IP
-    ip_master=$(whiptail --title "Master Node IP" \
-        --inputbox "Type the IP of the Master Node (which should be this node)." $(stty size) \
+    ip_master=$(whiptail --title "Select the Master Node's IP" \
+        --inputbox "Type the IP of the desired Master Node for your cluster." 10 60 \
         "192.168.0.100" \
         3>&1 1>&2 2>&3)
 
     ### Worker Nodes's IP
     for (( c=1; c<=$count_workers; c++ ))
     do
-        worker_ips[$c]=$(whiptail --title "Worker Node n°$c IP" \
-            --inputbox "Type the IP of the Working Node n°$c." $(stty size) \
+        worker_ips[$c]=$(whiptail --title "Select the Worker Node n°$c IP" \
+            --inputbox "Type the IP of the Working Node n°$c." 10 60 \
             "$ip_master" \
             3>&1 1>&2 2>&3)
     done
 
     ### IPAddressPool for MetalLB
     if (whiptail --title "IP Address Pool LoadBalancers" --yes-button "Min-Max" --no-button "CIDR" \
-            --yesno "Specify the desired IP range for Load Balancers: either Min-Max or a full CIDR block." $(stty size)); then
+            --yesno "Specify the desired IP range for Load Balancers. You can type it either as a Min-Max or a full CIDR block." 10 60); then
         choose_cidr=false
-        ip_min=$(whiptail --title "Enter the Load Balancer's minimum IP" \
-            --inputbox "Type the min IP." $(stty size) \
+        ip_min=$(whiptail --title "Select the Load Balancer's MINimum IP" \
+            --inputbox "Type the minimum IP for your Cluster's Load Balancers." 10 60 \
             "$ip_master" \
             3>&1 1>&2 2>&3)
-        ip_max=$(whiptail --title "Enter the Load Balancer's maximum IP" \
-            --inputbox "Type the max IP." $(stty size) \
+        ip_max=$(whiptail --title "Select the Load Balancer's MAXimum IP" \
+            --inputbox "Type the maximum IP for your Cluster's Load Balancers." 10 60 \
             "$ip_min" \
             3>&1 1>&2 2>&3)
     else
         choose_cidr=true
-        lb_cidr=$(whiptail --title "Enter the CIDR for the Load Balancers" \
-            --inputbox "Type the CIDR for the Load Balancers." $(stty size) \
+        lb_cidr=$(whiptail --title "Select the CIDR for the Load Balancers" \
+            --inputbox "Type the CIDR for the Cluster's Load Balancers." 10 60 \
             "$ip_master/25" \
             3>&1 1>&2 2>&3)
     fi
 
     ### SSH Connection Username
-    username=$(whiptail --title "Username for SSH" \
-        --inputbox "Type the username for the SSH connection with the VMs (non-root user)." $(stty size) \
+    username=$(whiptail --title "Select the Username for the SSH Connection" \
+        --inputbox "$USERNAME_MSG" 15 60 \
         "username" \
         3>&1 1>&2 2>&3)
 
     ### SSH Connection Passwords
-    passwd=$(whiptail --title "Password for SSH" \
-        --passwordbox "Type the password for the SSH connection with the VMs (non-root user)." $(stty size) "" \
+    passwd=$(whiptail --title "Select the Password for the SSH Connection" \
+        --passwordbox "$PASSWORD_MSG" 15 60 "" \
         3>&1 1>&2 2>&3)
 
     ## CRI Selection
-    cri=$(whiptail --title "Container Runtime Interface" \
-        --menu "Select which CNI you wanna use:" $(stty size) 3 \
+    cri=$(whiptail --title "Select the Container Runtime Interface (CRI)" \
+        --menu "Select which CRI you wanna use for each VM in the cluster:" 10 150 3 \
         "Docker" "The most widely adopted and well-documented container runtime, it allows for simple container management." \
-        "Containerd" "Highly adopted, minimal container runtime." \
+        "Containerd" "Highly adopted, but minimal container runtime." \
         "CRI-O" "A lightweight, Kubernetes-specific container runtime." \
         3>&1 1>&2 2>&3)
 
@@ -371,21 +331,13 @@ function confirmMenuSimple {
         show_range="$ip_min-$ip_max"
     fi
 
+    confirm_text_1
     ### RECAP
     whiptail --title "Configuration Overview" \
-            --msgbox "Adopted configuration: Basic Non-High Availability Setup\n
-Number of Working Nodes: $count_workers\n
-Master IP $ip_master\n
-$dialog_text
-IPAddressPool for LB: $show_range\n
-Container Runtime: $cri\n\n
-Credentials SSH non-ROOT:\n
-Username: $username
-Password: $passwd
-" $(stty size)
+            --msgbox "$CONFIRM_SIMPLE" 30 150
 
     if (whiptail --title "Final Confirmation" \
-                --yesno "Do you confirm these settings to proceed with the installation?" $(stty size)); then
+                --yesno "Do you confirm these settings to proceed with the installation?" 10 60); then
         initSimple
     else
         clear
