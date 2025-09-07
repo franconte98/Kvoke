@@ -87,9 +87,9 @@ For optimal performance and minimal latency, it's recommended that you run Kinit
    ```sh
    cd Kinit && chmod +x start.sh
    ```
-3. <b>Execute the Script</b>
+3. <b>Execute the Script (as ROOT)</b>
 
-   Run the start.sh script to begin the setup process.
+   Run the start.sh script to begin the setup process as ROOT.
    ```sh
    ./start.sh
    ```
