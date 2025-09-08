@@ -37,6 +37,74 @@ function validate_range() {
   fi
 }
 
+# --- Confirmation Menu Function for Creating Clusters ---
+function confirmCreate {
+
+    # --- Filter the type of configuration ---
+    case $CONF_CHOICE in
+        1)
+            dialog_text=""
+            for (( c=1; c<=$count_workers; c++ ))
+            do
+                dialog_text+="IP Worker n°$c: ${worker_ips[$c]}\n"
+            done
+
+            show_range=""
+            if [[ "$choose_cidr" == "true" ]]; then
+                show_range="$lb_cidr"
+            else
+                show_range="$ip_min-$ip_max"
+            fi
+
+            # --- Call to the environment function ---
+            confirm_page
+
+            # --- Graphical Recap ---
+            whiptail --title "Configuration Overview" \
+                    --msgbox "$CONFIRM" 30 80
+            ;;
+        2)
+            text_masters=""
+            for (( c=1; c<=$count_masters; c++ ))
+            do
+                text_masters+="IP Master n°$c: ${master_ips[$c]}\n"
+            done
+
+            text_workers=""
+            for (( c=1; c<=$count_workers; c++ ))
+            do
+                text_workers+="IP Worker n°$c: ${worker_ips[$c]}\n"
+            done
+
+            show_range=""
+            if [[ "$choose_cidr" == "true" ]]; then
+                show_range="$lb_cidr"
+            else
+                show_range="$ip_min-$ip_max"
+            fi
+            # --- Call to the environment function ---
+            confirm_page
+
+            # --- Graphical Recap ---
+            whiptail --title "Configuration Overview" \
+                    --msgbox "$CONFIRM" 45 80
+            ;;
+        *)
+            clear
+            echo -e "\nInvalid Option!\n"
+            ;;
+    esac
+
+    # --- Final Confirm ---
+    if (whiptail --title "Final Confirmation" \
+                --yesno "Do you confirm these settings to proceed with the installation?" 10 60); then
+        initSimple
+    else
+        clear
+        mainMenu
+    fi
+}
+
 # --- Main Menu, here everything start! ---
 function mainMenu {
 
@@ -244,7 +312,7 @@ function inventorySimple {
 # createMenu -> menuSimple
 function menuSimple {
 
-    whiptail --title "Basic Non-High Availability Setup" \
+    whiptail --title "Simple Configuration (NON-HA)" \
         --msgbox "$WELCOME_1" 30 100
 
     ### Number of Working Nodes
@@ -312,37 +380,7 @@ function menuSimple {
         "CRI-O" "A lightweight, Kubernetes-specific container runtime." \
         3>&1 1>&2 2>&3)
 
-    confirmMenuSimple
-}
-
-# --- Confirmation Menu Function Non-HA ---
-function confirmMenuSimple {
-
-    dialog_text=""
-    for (( c=1; c<=$count_workers; c++ ))
-    do
-        dialog_text+="\nIP Worker n°$c: ${worker_ips[$c]}\n"
-    done
-
-    show_range=""
-    if [[ "$choose_cidr" == "true" ]]; then
-        show_range="$lb_cidr"
-    else
-        show_range="$ip_min-$ip_max"
-    fi
-
-    confirm_text_1
-    ### RECAP
-    whiptail --title "Configuration Overview" \
-            --msgbox "$CONFIRM_SIMPLE" 30 150
-
-    if (whiptail --title "Final Confirmation" \
-                --yesno "Do you confirm these settings to proceed with the installation?" 10 60); then
-        initSimple
-    else
-        clear
-        mainMenu
-    fi
+    confirmCreate
 }
 
 # --- Initialization of a Simple NON-HA Cluster [~ 10 minutes] ---
@@ -560,26 +598,12 @@ function loadCerts {
 # --- Menu Stacked Configuration ---
 function menuStacked {
 
-    # --- 1 MessageBox per Avvisare ---
     whiptail --title "Stacked Configuration Cluster Setup" \
-        --msgbox "This configuration demands a more detailed infrastructure but provides optimal High Availability (HA). 
-        It embeds the etcd components directly within each master node, leveraging a quorum algorithm to ensure the cluster 
-        remains fully operational as long as a majority of these nodes are active.
-    \nMINIMUM REQUIREMENTS:
-    - 3 Master Nodes, up to 7
-    - Up to 10 Worker Nodes
-    - 1 free IP as a VIP
-    \nNETWORK PREREQUISITES:
-    - All VMs must reside on the same network (and must be reachable for each other).
-    - At least 2vCPU, 2Gi of RAM and 40Gb of Storage for each VM.
-    - All the VMs got to have the same sudoer user (With the same username and password).
-    " $(stty size)
+        --msgbox "$WELCOME_2" 30 100
 
-    # --- 2 Input dei valori per IPs, N° Working Nodes e Credenziali ---
-
-    ### Numero dei Master Nodes
-    count_masters=$(whiptail --title "Number of Master Nodes" \
-        --inputbox "Select the number of Master Nodes (from 3 up to 7). An Odd number is strongly advised." $(stty size) \
+    ### Number of Master Nodes
+    count_masters=$(whiptail --title "Select the number of Master Nodes" \
+        --inputbox "Type the desired number of Master Nodes (from 3 up to 7). An Odd number is strongly advised." 10 60 \
         "3" \
         3>&1 1>&2 2>&3)
     if ! validate_range "$count_masters" "2" "8"; then
@@ -588,9 +612,9 @@ function menuStacked {
         exit 1
     fi
 
-    ### Numero dei Worker Nodes
-    count_workers=$(whiptail --title "Number of Working Nodes" \
-        --inputbox "Select the number of Working Node (from 1 up to 10):" $(stty size) \
+    ### Number of Worker Nodes
+    count_workers=$(whiptail --title "Select the number of Working Nodes" \
+        --inputbox "Type the desired number of Working Nodes for your cluster (from 1 up to 10)." 10 60 \
         "2" \
         3>&1 1>&2 2>&3)
     if ! validate_range "$count_workers" "0" "11"; then
@@ -599,119 +623,72 @@ function menuStacked {
         exit 1
     fi
     
-    ### IP dei Master Nodes
+    ### Master's Nodes IP
     for (( c=1; c<=$count_masters; c++ ))
     do
-        master_ips[$c]=$(whiptail --title "Master Node n°$c IP" \
-            --inputbox "Type the IP of the Master Node n°$c (which should be this node)." $(stty size) \
+        master_ips[$c]=$(whiptail --title "Select the Master Node's IP n°$c IP" \
+            --inputbox "Type the IP of the Master Node n°$c." 10 60 \
             "192.168.0.10" \
             3>&1 1>&2 2>&3)
     done
 
-    ### IP dei Worker Nodes
+    ### Worker Node's IP
     for (( c=1; c<=$count_workers; c++ ))
     do
-        worker_ips[$c]=$(whiptail --title "Worker Node n°$c IP" \
-            --inputbox "Type the IP of the Working Node n°$c:" $(stty size) \
+        worker_ips[$c]=$(whiptail --title "Select the Worker Node's IP n°$c IP" \
+            --inputbox "Type the IP of the Working Node n°$c:" 10 60 \
             "${master_ips[1]}" \
             3>&1 1>&2 2>&3)
     done
 
-    ### IP del Load Balancer
+    ### VIP for KeepAliveD
     lb_ip=$(whiptail --title "KeepAliveD VIP" \
-            --inputbox "Please enter the Virtual IP (VIP) that will be used to expose the control plane. (There should not be any device or VM on this IP)" $(stty size) \
+            --inputbox "Please enter the Virtual IP (VIP) that will be used to expose the control plane. (There should not be any device or VM on this IP)" 15 60 \
             "${master_ips[1]}" \
             3>&1 1>&2 2>&3)
 
     ### IP Range per Load Balancers
     if (whiptail --title "IP Address Pool LoadBalancers" --yes-button "Min-Max" --no-button "CIDR" \
-            --yesno "Specify the desired IP range for Load Balancers: either Min-Max or a full CIDR block." $(stty size)); then
+            --yesno "Specify the desired IP range for Load Balancers. You can type it either as a Min-Max or a full CIDR block." 10 60); then
         choose_cidr=false
-        ip_min=$(whiptail --title "Enter the Load Balancer's minimum IP" \
-            --inputbox "Type the min IP:" $(stty size) \
+        ip_min=$(whiptail --title "Select the Load Balancer's MINimum IP" \
+            --inputbox "Type the minimum IP for your Cluster's Load Balancers." 10 60 \
             "${master_ips[1]}" \
             3>&1 1>&2 2>&3)
-        ip_max=$(whiptail --title "Enter the Load Balancer's maximum IP" \
-            --inputbox "Type the max IP:" $(stty size) \
+        ip_max=$(whiptail --title "Select the Load Balancer's MAXimum IP" \
+            --inputbox "Type the maximum IP for your Cluster's Load Balancers." 10 60 \
             "$ip_min" \
             3>&1 1>&2 2>&3)
     else
         choose_cidr=true
-        lb_cidr=$(whiptail --title "Enter the CIDR for the Load Balancers" \
-            --inputbox "Type the CIDR for the Load Balancers:" $(stty size) \
+        lb_cidr=$(whiptail --title "Select the CIDR for the Load Balancers" \
+            --inputbox "Type the CIDR for the Cluster's Load Balancers." 10 60 \
             "${master_ips[1]}/25" \
             3>&1 1>&2 2>&3)
     fi
 
     ### Username per SSH
-    username=$(whiptail --title "Username for SSH" \
-        --inputbox "Type the username for the SSH connection with the VMs (non-root user):" $(stty size) \
+    username=$(whiptail --title "Select the Username for the SSH Connection" \
+        --inputbox "$USERNAME_MSG" 15 60 \
         "username" \
         3>&1 1>&2 2>&3)
 
     ### Password per SSH
-    passwd=$(whiptail --title "Password for SSH" \
-        --passwordbox "Type the password for the SSH connection with the VMs (non-root user):" $(stty size) "" \
+    passwd=$(whiptail --title "Select the Password for the SSH Connection" \
+        --passwordbox "$PASSWORD_MSG" 15 60 "" \
         3>&1 1>&2 2>&3)
 
     # -- 3 Input dei tool adoperati per il cluster ---
 
     ## CRI
     cri=$(whiptail --title "Container Runtime Interface" \
-        --menu "Select which CNI you wanna use:" $(stty size) 3 \
+        --menu "Select which CNI you wanna use:" 10 150 3 \
         "Docker" "The most widely adopted and well-documented container runtime, it allows for simple container management." \
         "Containerd" "Highly adopted, minimal container runtime." \
         "CRI-O" "A lightweight, Kubernetes-specific container runtime." \
         3>&1 1>&2 2>&3)
 
-    confirmMenuStacked
-}
-
-# --- Confirmation Menu Function Non-HA ---
-function confirmMenuStacked {
-
-    text_masters=""
-    for (( c=1; c<=$count_masters; c++ ))
-    do
-        text_masters+="\nIP Master n°$c: ${master_ips[$c]}\n"
-    done
-
-    text_workers=""
-    for (( c=1; c<=$count_workers; c++ ))
-    do
-        text_workers+="\nIP Worker n°$c: ${worker_ips[$c]}\n"
-    done
-
-    show_range=""
-    if [[ "$choose_cidr" == "true" ]]; then
-        show_range="$lb_cidr"
-    else
-        show_range="$ip_min-$ip_max"
-    fi
-
-    ### RECAP
-    whiptail --title "Configuration Overview" \
-            --msgbox "Adopted configuration: Stacked Configuration (HA)\n
-            Number of Master Nodes: $count_masters\n
-            Number of Working Nodes: $count_workers\n
-            $text_masters
-            $text_workers
-            IP del Load Balancer KeepAliveD: $lb_ip\n
-            IPAddressPool for LB: $show_range\n
-            Container Runtime: $cri\n
-            Credentials SSH non-ROOT:
-            Username: $username
-            Password: $passwd
-            " $(stty size)
-
-    if (whiptail --title "Final Confirmation" \
-                --yesno "Do you confirm these settings to proceed with the installation?" $(stty size)); then
-        initStacked
-    else
-        clear
-        mainMenu
-    fi
-
+    confirmCreate
 }
 
 # --- Initialization of a Stacked ETCD HA Cluster [~ 10 minutes] ---

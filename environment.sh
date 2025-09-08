@@ -53,7 +53,7 @@ This script will guide you through the initial setup and preliminary configurati
 This IaC script suite automates Kubernetes cluster installation and configuration. 
 It includes three official node-joining configurations, adaptable to your available infrastructure.
 
-VMs REQUIREMENTS::
+VMs REQUIREMENTS:
 - Each VM requires a unique IP address.
 - All VMs must reside on the same network (and must be reachable for each other).
 - At least 2vCPU, 2GB of RAM and 25GB of storage for each VM.
@@ -70,7 +70,25 @@ MINIMUM REQUIREMENTS:
 - 1 Master Node
 - 1, up to 10 Worker Nodes
 
-VMs REQUIREMENTS::
+VMs REQUIREMENTS:
+- Each VM requires a unique IP address.
+- All VMs must reside on the same network (and must be reachable for each other).
+- At least 2vCPU, 2GB of RAM and 25GB of storage for each VM.
+- All the VMs got to have the same sudoer user (With the same username and password).
+EOF
+)
+
+WELCOME_2=$(cat <<'EOF'
+This configuration demands a more detailed infrastructure but provides optimal High Availability (HA). 
+It embeds the etcd components directly within each master node, leveraging a quorum algorithm to ensure the cluster 
+remains fully operational as long as a majority of these nodes are active.
+
+MINIMUM REQUIREMENTS:
+- 3 Master Nodes, up to 7
+- Up to 10 Worker Nodes
+- 1 free IP as a VIP
+
+VMs REQUIREMENTS:
 - Each VM requires a unique IP address.
 - All VMs must reside on the same network (and must be reachable for each other).
 - At least 2vCPU, 2GB of RAM and 25GB of storage for each VM.
@@ -94,17 +112,41 @@ Remember that the User has to be a sudoer, and have the same credentials for eac
 EOF
 )
 
-function confirm_text_1 {
-    CONFIRM_SIMPLE=$(cat <<EOF
-Adopted configuration: Basic Non-High Availability Setup\n
+function confirm_page {
+    case $CONF_CHOICE in
+        1)
+            CONFIRM=$(cat <<EOF
+Adopted configuration: Simple Configuration (NON-HA)\n
 Number of Working Nodes: $count_workers\n
-Master IP $ip_master\n
+IP Master: $ip_master
 $dialog_text
-IPAddressPool for LB: $show_range\n
-Container Runtime: $cri\n\n
-Credentials SSH non-ROOT:\n
+IP Address Pool for Load Balancers: $show_range\n
+Container Runtime used: $cri\n
+Credentials SSH sudoer\n
 Username: $username
 Password: $passwd
 EOF
 )
+            ;;
+        2)
+            CONFIRM=$(cat <<EOF
+Adopted configuration: Stacked Configuration (HA)\n
+Number of Master Nodes: $count_masters\n
+Number of Working Nodes: $count_workers\n
+$text_masters
+$text_workers
+VIP KeepAliveD: $lb_ip\n
+IP Address Pool for Load Balancers: $show_range\n
+Container Runtime used: $cri\n
+Credentials SSH sudoer\n
+Username: $username
+Password: $passwd
+EOF
+)
+            ;;
+        *)
+            clear
+            echo -e "\nInvalid Option!\n"
+            ;;
+    esac
 }
