@@ -1,9 +1,17 @@
 [masters]
-192.168.1.2
+192.168.0.100
 
 [workers]
-192.168.1.3
-192.168.1.4
+192.168.0.100
+192.168.0.100
+192.168.0.100
+192.168.0.100
+192.168.0.100
+192.168.0.100
+192.168.0.100
+192.168.0.100
+192.168.0.100
+192.168.0.100
 
 [all_vms:children]
 masters
@@ -11,12 +19,20 @@ workers
 
 [all_vms:vars]
 ansible_user=username
-ansible_ssh_pass=dwdawda
-ansible_become_pass=dwdawda
-count_workers=2
-worker1=192.168.1.3
-worker2=192.168.1.4
-master_ip=192.168.1.2
+ansible_ssh_pass=
+ansible_become_pass=
+count_workers=10
+worker1=192.168.0.100
+worker2=192.168.0.100
+worker3=192.168.0.100
+worker4=192.168.0.100
+worker5=192.168.0.100
+worker6=192.168.0.100
+worker7=192.168.0.100
+worker8=192.168.0.100
+worker9=192.168.0.100
+worker10=192.168.0.100
+master_ip=192.168.0.100
 cri=Docker
 username=username
-passwd=dwdawda
+passwd=
