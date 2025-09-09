@@ -1,71 +1,63 @@
 #!/bin/bash
 
 function initDocker {
+    echo "--- Initiating Docker Container Runtime ---"
+    sudo apt-get install -y docker.io docker-buildx # Moved here as it's Docker-specific
+    sudo systemctl enable --now docker
 
-    ### Install Docker
-    sudo apt-get update -y;
-    sudo apt-get install -y docker.io docker-buildx;
-    systemctl enable --now docker;
+    VER_CRI_DOCKER=$(curl -sL https://api.github.com/repos/Mirantis/cri-dockerd/releases/latest | grep "tag_name" | cut -d'"' -f4)
+    wget -q --show-progress "https://github.com/Mirantis/cri-dockerd/releases/download/$VER_CRI_DOCKER/cri-dockerd-$VER_CRI_DOCKER-linux-amd64.tar.gz"
+    sudo tar -xvf "cri-dockerd-$VER_CRI_DOCKER-linux-amd64.tar.gz" --overwrite
+    sudo install -o root -g root -m 0755 cri-dockerd/cri-dockerd /usr/local/bin/cri-dockerd
+    sudo rm -rf cri-dockerd*
 
-
-    ### Install Docker CRI
-    VER_CRI_DOCKER=$(curl --silent -qI https://github.com/Mirantis/cri-dockerd/releases/latest | awk -F '/' '/^location/ {print  substr($NF, 1, length($NF)-1)}');
-    wget -q https://github.com/Mirantis/cri-dockerd/releases/download/$VER_CRI_DOCKER/cri-dockerd-$VER_CRI_DOCKER.amd64.tgz;
-    tar -xvf cri-dockerd-$VER_CRI_DOCKER.amd64.tgz --overwrite;
-
-    ### Move Binary and Clean
-    sudo install -o root -g root -m 0755 cri-dockerd/cri-dockerd /usr/local/bin/cri-dockerd;
-    rm -rf cri-dockerd cri-dockerd-$VER_CRI_DOCKER-linux-amd64.tar.gz;
-
-    ### Set up the Docker CRI 1° (Only docker-network-bridge => --network-plugin=)
-    sudo tee /etc/systemd/system/cri-docker.service << EOF
-    [Unit]
-    Description=CRI Interface for Docker Application Container Engine
-    After=network-online.target firewalld.service docker.service
-    Wants=network-online.target
-    Requires=cri-docker.socket
-    [Service]
-    Type=notify
-    ExecStart=/usr/local/bin/cri-dockerd --container-runtime-endpoint fd:// --network-plugin=cni
-    ExecReload=/bin/kill -s HUP $MAINPID
-    TimeoutSec=0
-    RestartSec=2
-    Restart=always
-    StartLimitBurst=3
-    StartLimitInterval=60s
-    LimitNOFILE=infinity
-    LimitNPROC=infinity
-    LimitCORE=infinity
-    TasksMax=infinity
-    Delegate=yes
-    KillMode=process
-    [Install]
-    WantedBy=multi-user.target
+    sudo tee /etc/systemd/system/cri-docker.service > /dev/null << EOF
+[Unit]
+Description=CRI Interface for Docker Application Container Engine
+After=network-online.target firewalld.service docker.service
+Wants=network-online.target
+Requires=cri-docker.socket
+[Service]
+Type=notify
+ExecStart=/usr/local/bin/cri-dockerd --container-runtime-endpoint fd:// --network-plugin=cni
+ExecReload=/bin/kill -s HUP \$MAINPID
+TimeoutSec=0
+RestartSec=2
+Restart=always
+StartLimitBurst=3
+StartLimitInterval=60s
+LimitNOFILE=infinity
+LimitNPROC=infinity
+LimitCORE=infinity
+TasksMax=infinity
+Delegate=yes
+KillMode=process
+[Install]
+WantedBy=multi-user.target
 EOF
 
-    ### Set up the Docker CRI 2°
-    sudo tee /etc/systemd/system/cri-docker.socket << EOF
-    [Unit]
-    Description=CRI Docker Socket for the API
-    PartOf=cri-docker.service
-    [Socket]
-    ListenStream=%t/cri-dockerd.sock
-    SocketMode=0660
-    SocketUser=root
-    SocketGroup=docker
-    [Install]
-    WantedBy=sockets.target
+    sudo tee /etc/systemd/system/cri-docker.socket > /dev/null << EOF
+[Unit]
+Description=CRI Docker Socket for the API
+PartOf=cri-docker.service
+[Socket]
+ListenStream=%t/cri-dockerd.sock
+SocketMode=0660
+SocketUser=root
+SocketGroup=docker
+[Install]
+WantedBy=sockets.target
 EOF
 
-    ### Reload / Enable / Restart CRI
-    systemctl daemon-reload;
-    systemctl enable --now cri-docker;
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now cri-docker.socket
+    sudo systemctl start cri-docker
 
-    ### Install Docker Compose
-    DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker};
-    mkdir -p "$DOCKER_CONFIG/cli-plugins";
-    curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o "$DOCKER_CONFIG/cli-plugins/docker-compose";
-    chmod +x "$DOCKER_CONFIG/cli-plugins/docker-compose";
+    # Docker-compose install
+    DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
+    sudo mkdir -p "$DOCKER_CONFIG/cli-plugins"
+    sudo curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o "$DOCKER_CONFIG/cli-plugins/docker-compose"
+    sudo chmod +x "$DOCKER_CONFIG/cli-plugins/docker-compose"
 }
 
 function initContainerd {
@@ -348,43 +340,42 @@ function initCrio {
     rm -f crictl-$VER_CRICTL-linux-amd64.tar.gz
 }
 
-### Disable Swap in linux
-swapoff -a;
-sed -i '/[/]swap.img/ s/^/#/' /etc/fstab;
+### Abort if a command fails
+set -e
 
-### Get the tools for Logging and Networking on Linux
-sudo apt install net-tools -y;
+### Disable Swap in linux
+sudo swapoff -a;
+sudo sed -i '/[/]swap.img/ s/^/#/' /etc/fstab;
+
+### Setup IPV4
+echo "memory swapoff";
+sudo modprobe overlay
+sudo modprobe br_netfilter
+sudo tee /etc/sysctl.d/kubernetes.conf > /dev/null <<EOF
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.ip_forward = 1
+EOF
+sudo sysctl --system;
+
+### Install common dependencies
 sudo apt-get update -y;
+sudo apt install net-tools apt-transport-https ca-certificates curl gpg -y;
 
 ### Retreive the latest version of Kubernetes and store it in $VER_K8S_Latest
 Version_K8S_Latest="$(curl -sSL https://dl.k8s.io/release/stable.txt)";
 Version_K8S_Stable=$(echo $Version_K8S_Latest | cut -d '.' -f 1)"."$(echo $Version_K8S_Latest | cut -d '.' -f 2);
 
-### Install Kubernetes components
-sudo apt-get install -y apt-transport-https ca-certificates curl gpg;
+### Install Kubernetes components + Helm
 curl -fsSL https://pkgs.k8s.io/core:/stable:/$Version_K8S_Stable/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg;
 echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/'$Version_K8S_Stable'/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list;
-curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null;
-sudo apt-get update -y;
-sudo apt-get install -y kubelet kubeadm kubectl;
-sudo apt-mark hold kubelet kubeadm kubectl;
-
-### Setup IPV4
-echo "memory swapoff";
-sudo modprobe overlay;
-sudo modprobe br_netfilter;
-sudo tee /etc/sysctl.d/kubernetes.conf<<EOF
-net.bridge.bridge-nf-call-ip6tables = 1
-net.bridge.bridge-nf-call-iptables = 1
-net.ipv4.ip_forward = 1
-EOF
-
-### Install Helm
-sudo apt-get install curl gpg apt-transport-https --yes;
 curl -fsSL https://packages.buildkite.com/helm-linux/helm-debian/gpgkey | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null;
 echo "deb [signed-by=/usr/share/keyrings/helm.gpg] https://packages.buildkite.com/helm-linux/helm-debian/any/ any main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list;
+curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null;
 sudo apt-get update -y;
-sudo apt-get install helm -y;
+sudo apt-get install -y kubelet kubeadm kubectl helm;
+sudo apt-mark hold kubelet kubeadm kubectl;
+sudo systemctl enable --now kubelet;
 
 ### CNI Plugins
 VER_CNI_PLUGINS=$(curl --silent -qI https://github.com/containernetworking/plugins/releases/latest | awk -F '/' '/^location/ {print  substr($NF, 1, length($NF)-1)}');
@@ -409,8 +400,6 @@ case $2 in
 esac
 
 ### Install all the necessary components of K8S Architecture Based on the CRI
-sysctl --system;
-sudo systemctl enable kubelet;
 case $2 in
     "Docker")
         sudo kubeadm config images pull --cri-socket unix:///var/run/cri-dockerd.sock;
@@ -428,5 +417,5 @@ case $2 in
 esac
 
 ### Set Up Internal-IP of the Node
-echo 'KUBELET_EXTRA_ARGS="--node-ip='$1'"' > /etc/default/kubelet;
+echo 'KUBELET_EXTRA_ARGS="--node-ip='$1'"' | sudo tee /etc/default/kubelet > /dev/null;
 systemctl restart kubelet;
