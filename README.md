@@ -9,27 +9,27 @@
 <br />
 <div align="center">
   <a href="https://github.com/othneildrew/Best-README-Template">
-    <img src="Resources/Logo-Kinit.png" alt="Logo" width="400">
+    <img src="Resources/Logo-Kvoke.png" alt="Logo" width="400">
   </a>
 </div>
 
 ## Overview
 
-Kinit is a powerful, open-source Infrastructure as Code (IaC) tool designed to simplify the deployment of on-premise Kubernetes clusters. It eliminates the complexities of manual setup, allowing you to build a production-ready cluster with minimal effort.
+Kvoke is a powerful, open-source Infrastructure as Code (IaC) tool designed to simplify the deployment of on-premise Kubernetes clusters. It eliminates the complexities of manual setup, allowing you to build a production-ready cluster with minimal effort.
 
-Kinit streamlines the entire process into a few simple steps:
+Kvoke streamlines the entire process into a few simple steps:
 
 1. <ins>Meet the Prerequisites:</ins> Ensure you have the minimal infrastructure required, as outlined in the Prerequisites section.
 
 2. <ins>Fill out the Form:</ins> Use our intuitive UI to define your cluster's specifications.
 
-3. <ins>Deploy:</ins> Kinit handles the rest, automating the entire cluster creation process.
+3. <ins>Deploy:</ins> Kvoke handles the rest, automating the entire cluster creation process.
 
-With Kinit, building a Kubernetes cluster is as easy as filling out a form, making advanced infrastructure accessible to everyone.
+With Kvoke, building a Kubernetes cluster is as easy as filling out a form, making advanced infrastructure accessible to everyone.
 
 ### Choose Your Container Runtime
 
-Kinit gives you the flexibility to build your cluster with the container runtime that best fits your needs. You can easily choose between:
+Kvoke gives you the flexibility to build your cluster with the container runtime that best fits your needs. You can easily choose between:
 
 - Docker 🐳
 
@@ -39,7 +39,7 @@ Kinit gives you the flexibility to build your cluster with the container runtime
 
 ### Tailor Your Infrastructure for High Availability
 
-Beyond container runtimes, Kinit lets you select the cluster configuration that aligns with your specific high-availability (HA) and reliability requirements.
+Beyond container runtimes, Kvoke lets you select the cluster configuration that aligns with your specific high-availability (HA) and reliability requirements.
 
 #### Simple Configuration
 
@@ -71,27 +71,27 @@ This project requires a pre-configured infrastructure of virtual machines that a
 
 ### Installation
 
-`Kinit` can be executed from any environment with network access to your target virtual machines, including a separate host or one of the VMs destined to be a Kubernetes node.
+`Kvoke` can be executed from any environment with network access to your target virtual machines, including a separate host or one of the VMs destined to be a Kubernetes node.
 
-For optimal performance and minimal latency, it's recommended that you run Kinit directly from the machine designated as your primary master node.
+For optimal performance and minimal latency, it's recommended that you run Kvoke directly from the machine designated as your primary master node.
 
 1. <b>Clone the Repository</b>
 
-   First, connect to your target node and clone the Kinit repository.
+   First, connect to your target node and clone the Kvoke repository.
    ```sh
-   git clone https://github.com/franconte98/Kinit.git
+   git clone https://github.com/franconte98/Kvoke.git
    ```
 2. <b>Grant Execution Permissions</b>
 
-   Navigate into the newly created Kinit directory and grant execute permissions to the main script.
+   Navigate into the newly created Kvoke directory and grant execute permissions to the main script.
    ```sh
-   cd Kinit && chmod +x start.sh
+   cd Kvoke && chmod +x start.sh
    ```
 3. <b>Execute the Script (as ROOT)</b>
 
    Run the start.sh script to begin the setup process as ROOT.
    ```sh
-   ./start.sh
+   sudo ./start.sh
    ```
 4. <b>Follow the On-Screen Prompts</b>
 
@@ -99,23 +99,23 @@ For optimal performance and minimal latency, it's recommended that you run Kinit
 
 ## Usage
 
-`Kinit` is a versatile tool designed to handle both cluster creation and node joining.
+`Kvoke` is a versatile tool designed to handle both cluster creation and node joining.
 
-- <b>To Create a Cluster:</b> Run Kinit from a machine on the same network as your virtual machines. The script will guide you through the process of setting up your desired cluster topology.
+- <b>To Create a Cluster:</b> Run Kvoke from a machine on the same network as your virtual machines. The script will guide you through the process of setting up your desired cluster topology.
 
-- <b>To Join a Node:</b> Execute Kinit directly on the node you wish to add to an existing cluster. Follow the on-screen prompts and select the "Join" option when prompted.
+- <b>To Join a Node:</b> Execute Kvoke directly on the node you wish to add to an existing cluster. Follow the on-screen prompts and select the "Join" option when prompted.
 
-## About Kinit
+## About Kvoke
 
-`Kinit` offers a unique approach to on-premise Kubernetes deployment. Unlike solutions that abstract away the cluster's core components, `Kinit` utilizes kubeadm to create a standard, vendor-neutral Kubernetes cluster. This means your cluster is built with the same robust tools you would use for a manual configuration, guaranteeing long-term stability and compatibility with the wider Kubernetes ecosystem.
+`Kvoke` offers a unique approach to on-premise Kubernetes deployment. Unlike solutions that abstract away the cluster's core components, `Kvoke` utilizes kubeadm to create a standard, vendor-neutral Kubernetes cluster. This means your cluster is built with the same robust tools you would use for a manual configuration, guaranteeing long-term stability and compatibility with the wider Kubernetes ecosystem.
 
 This method provides two key advantages:
 
 <b>Transparency:</b> You get a standard kubeadm cluster, not a custom-built solution, making it easier to troubleshoot and manage.
 
-<b>Minimalism:</b> Kinit avoids unnecessary software, focusing on a lean and efficient cluster that's production-ready out of the box.
+<b>Minimalism:</b> Kvoke avoids unnecessary software, focusing on a lean and efficient cluster that's production-ready out of the box.
 
-Additionally, Kinit installs a curated selection of minimal yet extremely useful tools to extend your cluster's capabilities:
+Additionally, Kvoke installs a curated selection of minimal yet extremely useful tools to extend your cluster's capabilities:
 
 - <ins>k9s:</ins> A terminal-based UI to interact with your Kubernetes cluster. It provides a real-time, intuitive interface for managing applications and resources.
 
@@ -131,14 +131,14 @@ Additionally, Kinit installs a curated selection of minimal yet extremely useful
 
 Distributed under the BSD-3-Clause license License. See `LICENSE` for more information.
 
-[contributors-shield]: https://img.shields.io/github/contributors/franconte98/Kinit.svg?style=for-the-badge
-[contributors-url]: https://github.com/franconte98/Kinit/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/franconte98/Kinit.svg?style=for-the-badge
-[forks-url]: https://github.com/franconte98/Kinit/forks
-[stars-shield]: https://img.shields.io/github/stars/franconte98/Kinit.svg?style=for-the-badge
-[stars-url]: https://github.com/franconte98/Kinit/stargazers
-[issues-shield]: https://img.shields.io/github/issues/franconte98/Kinit.svg?style=for-the-badge
-[issues-url]: https://github.com/franconte98/Kinit/issues
+[contributors-shield]: https://img.shields.io/github/contributors/franconte98/Kvoke.svg?style=for-the-badge
+[contributors-url]: https://github.com/franconte98/Kvoke/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/franconte98/Kvoke.svg?style=for-the-badge
+[forks-url]: https://github.com/franconte98/Kvoke/forks
+[stars-shield]: https://img.shields.io/github/stars/franconte98/Kvoke.svg?style=for-the-badge
+[stars-url]: https://github.com/franconte98/Kvoke/stargazers
+[issues-shield]: https://img.shields.io/github/issues/franconte98/Kvoke.svg?style=for-the-badge
+[issues-url]: https://github.com/franconte98/Kvoke/issues
 [license-shield]: https://img.shields.io/badge/License-BSD%203--Clause-blue.svg?style=for-the-badge
-[license-url]: https://github.com/franconte98/Kinit/blob/main/LICENSE
+[license-url]: https://github.com/franconte98/Kvoke/blob/main/LICENSE
 [product-screenshot]: images/screenshot.png
