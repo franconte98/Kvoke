@@ -8,14 +8,14 @@
 
 <br />
 <div align="center">
-  <a href="https://github.com/othneildrew/Best-README-Template">
+  <a href="https://github.com/franconte98/Kvoke">
     <img src="Resources/Logo-Kvoke.png" alt="Logo" width="400">
   </a>
 </div>
 
 ## Overview
 
-Kvoke is a powerful, open-source Infrastructure as Code (IaC) tool designed to simplify the deployment of on-premise Kubernetes clusters. It eliminates the complexities of manual setup, allowing you to build a production-ready cluster with minimal effort.
+Kvoke is a minimal, open-source Infrastructure as Code (IaC) tool designed to simplify the deployment of on-premise Kubernetes clusters. It eliminates the complexities of manual setup, allowing you to build a production-ready cluster with minimal effort.
 
 Kvoke streamlines the entire process into a few simple steps:
 

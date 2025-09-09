@@ -1,0 +1,16 @@
+---
+- hosts: master_ip
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Store the initialization file on the Master Node
+      ansible.builtin.copy:
+        src: masterinit.sh
+        dest: /tmp/masterinit.sh
+        mode: '0755'
+      when: ansible_distribution_file_variety == "Debian"
+    
+    - name: Create the Cluster starting from the Master Node
+      ansible.builtin.command: /tmp/masterinit.sh {{ ansible_host }} {{ cri }}
+      when: ansible_distribution_file_variety == "Debian"
+...
