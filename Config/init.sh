@@ -1,16 +1,21 @@
 #!/bin/bash
 
 function initDocker {
+
+    ### Install Docker
+    sudo apt-get update -y;
+    sudo apt-get install -y docker.io docker-buildx;
+    systemctl enable --now docker;
+
+
     ### Install Docker CRI
     VER_CRI_DOCKER=$(curl --silent -qI https://github.com/Mirantis/cri-dockerd/releases/latest | awk -F '/' '/^location/ {print  substr($NF, 1, length($NF)-1)}');
-    wget -O cri-dockerd-${VER_CRI_DOCKER#v}.amd64.tgz https://github.com/Mirantis/cri-dockerd/releases/download/$VER_CRI_DOCKER/cri-dockerd-${VER_CRI_DOCKER#v}.amd64.tgz;
-    tar -xvf cri-dockerd-${VER_CRI_DOCKER#v}.amd64.tgz --overwrite;
-    sudo apt install docker.io -y;
-    systemctl enable --now docker;
-    cd cri-dockerd || exit;
-    mkdir -p /usr/local/bin;
-    install -o root -g root -m 0755 ./cri-dockerd /usr/local/bin/cri-dockerd;
-    sudo apt install docker-buildx -y;
+    wget -q https://github.com/Mirantis/cri-dockerd/releases/download/$VER_CRI_DOCKER/cri-dockerd-$VER_CRI_DOCKER.amd64.tgz;
+    tar -xvf cri-dockerd-$VER_CRI_DOCKER.amd64.tgz --overwrite;
+
+    ### Move Binary and Clean
+    sudo install -o root -g root -m 0755 cri-dockerd/cri-dockerd /usr/local/bin/cri-dockerd;
+    rm -rf cri-dockerd cri-dockerd-$VER_CRI_DOCKER-linux-amd64.tar.gz;
 
     ### Set up the Docker CRI 1° (Only docker-network-bridge => --network-plugin=)
     sudo tee /etc/systemd/system/cri-docker.service << EOF
@@ -54,8 +59,13 @@ EOF
 
     ### Reload / Enable / Restart CRI
     systemctl daemon-reload;
-    systemctl enable --now cri-docker.socket;
     systemctl enable --now cri-docker;
+
+    ### Install Docker Compose
+    DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker};
+    mkdir -p "$DOCKER_CONFIG/cli-plugins";
+    curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o "$DOCKER_CONFIG/cli-plugins/docker-compose";
+    chmod +x "$DOCKER_CONFIG/cli-plugins/docker-compose";
 }
 
 function initContainerd {
@@ -153,7 +163,7 @@ EOF
         stream_idle_timeout = "4h0m0s"
         stream_server_address = "127.0.0.1"
         stream_server_port = "0"
-        systemd_cgroup = false
+        systemd_cgroup = true
         tolerate_missing_hugetlb_controller = true
         unset_seccomp_profile = ""
 
@@ -343,7 +353,7 @@ swapoff -a;
 sed -i '/[/]swap.img/ s/^/#/' /etc/fstab;
 
 ### Get the tools for Logging and Networking on Linux
-sudo apt install net-tools;
+sudo apt install net-tools -y;
 sudo apt-get update -y;
 
 ### Retreive the latest version of Kubernetes and store it in $VER_K8S_Latest
@@ -359,12 +369,27 @@ sudo apt-get update -y;
 sudo apt-get install -y kubelet kubeadm kubectl;
 sudo apt-mark hold kubelet kubeadm kubectl;
 
+### Setup IPV4
+echo "memory swapoff";
+sudo modprobe overlay;
+sudo modprobe br_netfilter;
+sudo tee /etc/sysctl.d/kubernetes.conf<<EOF
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.ip_forward = 1
+EOF
+
 ### Install Helm
 sudo apt-get install curl gpg apt-transport-https --yes;
 curl -fsSL https://packages.buildkite.com/helm-linux/helm-debian/gpgkey | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null;
 echo "deb [signed-by=/usr/share/keyrings/helm.gpg] https://packages.buildkite.com/helm-linux/helm-debian/any/ any main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list;
 sudo apt-get update -y;
 sudo apt-get install helm -y;
+
+### CNI Plugins
+VER_CNI_PLUGINS=$(curl --silent -qI https://github.com/containernetworking/plugins/releases/latest | awk -F '/' '/^location/ {print  substr($NF, 1, length($NF)-1)}');
+wget -O cni-plugins-linux-amd64-$VER_CNI_PLUGINS.tgz https://github.com/containernetworking/plugins/releases/download/$VER_CNI_PLUGINS/cni-plugins-linux-amd64-$VER_CNI_PLUGINS.tgz
+tar Cxzvf /opt/cni/bin cni-plugins-linux-amd64-$VER_CNI_PLUGINS.tgz --overwrite
 
 ### Container Runtime Initialization (CRI)
 case $2 in
@@ -383,30 +408,7 @@ case $2 in
         ;;
 esac
 
-### CNI Plugins
-VER_CNI_PLUGINS=$(curl --silent -qI https://github.com/containernetworking/plugins/releases/latest | awk -F '/' '/^location/ {print  substr($NF, 1, length($NF)-1)}');
-wget -O cni-plugins-linux-amd64-$VER_CNI_PLUGINS.tgz https://github.com/containernetworking/plugins/releases/download/$VER_CNI_PLUGINS/cni-plugins-linux-amd64-$VER_CNI_PLUGINS.tgz
-tar Cxzvf /opt/cni/bin cni-plugins-linux-amd64-$VER_CNI_PLUGINS.tgz --overwrite
-
-### Setup IPV4
-echo "memory swapoff";
-sudo modprobe overlay;
-sudo modprobe br_netfilter;
-sudo tee /etc/sysctl.d/kubernetes.conf<<EOF
-net.bridge.bridge-nf-call-ip6tables = 1
-net.bridge.bridge-nf-call-iptables = 1
-net.ipv4.ip_forward = 1
-EOF
-
-### Install and setup Docker Compose (allow to handle containers, images and volumes through YAMLs) [Retreive the latest]
-if [[ $2 == "Docker" ]]; then
-    DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker};
-    mkdir -p "$DOCKER_CONFIG/cli-plugins";
-    curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o "$DOCKER_CONFIG/cli-plugins/docker-compose";
-    chmod +x "$DOCKER_CONFIG/cli-plugins/docker-compose";
-fi
-
-### Install all the necessary components of K8S Architecture right inside Docker
+### Install all the necessary components of K8S Architecture Based on the CRI
 sysctl --system;
 sudo systemctl enable kubelet;
 case $2 in
@@ -428,9 +430,3 @@ esac
 ### Set Up Internal-IP of the Node
 echo 'KUBELET_EXTRA_ARGS="--node-ip='$1'"' > /etc/default/kubelet;
 systemctl restart kubelet;
-
-### Install Weave Tool for each node in the cluster (Only on Docker-CRI)
-if [[ $2 == "Docker" ]]; then
-    sudo curl -L git.io/weave -o /usr/local/bin/weave;
-    sudo chmod +x /usr/local/bin/weave;
-fi
