@@ -306,6 +306,8 @@ function inventorySimple {
     echo "cri=$cri" >> "$OUTPUT_FILE"
     echo "username=$username" >> "$OUTPUT_FILE"
     echo "passwd=$passwd" >> "$OUTPUT_FILE"
+    echo "show_range=$show_range" >> "$OUTPUT_FILE"
+    show_range
 
 }
 
@@ -439,7 +441,8 @@ function initSimple {
 
     ### Creating the Cluster
     log "Creating the Cluster and Installing all the additional tools for the Cluster"
-    ./Config/Simple/masterinit.sh $ip_master $cri
+    #./Config/Simple/masterinit.sh $ip_master $cri
+    ansible-playbook ./Config/Simple/playbook_create.yaml;
     if [ $? -ne 0 ]; then
         echo "${NC}${RED}ERROR:${NC} Something went wrong initiating the cluster with Kubeadm! ${NC}${RED}ABORT.${NC}"
         log "ERROR: Something went wrong initiating the cluster with Kubeadm!"
@@ -476,35 +479,8 @@ function initSimple {
     fi
 
     ### IPAddressPool for MetalLB
-    cat <<-EOF | kubectl apply -f -
-apiVersion: metallb.io/v1beta1
-kind: IPAddressPool
-metadata:
-    name: first-pool
-    namespace: metallb-system
-spec:
-    addresses:
-    - $show_range
-    autoAssign: true
----
-apiVersion: metallb.io/v1beta1
-kind: L2Advertisement
-metadata:
-    name: l2
-    namespace: metallb-system
-spec:
-    ipAddressPools:
-    - first-pool
----
-apiVersion: metallb.io/v1beta1
-kind: BGPAdvertisement
-metadata:
-    name: example
-    namespace: metallb-system
-spec:
-    ipAddressPools:
-    - first-pool
-EOF
+    log "Adding the Load Balancer Range."
+    ansible-playbook ./Config/Simple/playbook_lb.yaml;
 
     ### End Of Process
     log "Installation and Configuration are done!"
