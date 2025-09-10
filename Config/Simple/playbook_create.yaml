@@ -13,4 +13,9 @@
     - name: Create the Cluster starting from the Master Node
       ansible.builtin.command: /tmp/masterinit.sh {{ ansible_host }} {{ cri }}
       when: ansible_distribution_file_variety == "Debian"
+      register: create_result
+
+    - name: Show Creation Cluster Result
+      ansible.builtin.debug:
+        var: create_result
 ...
