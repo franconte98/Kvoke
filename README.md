@@ -117,7 +117,9 @@ This method provides two key advantages:
 
 Additionally, Kvoke installs a curated selection of minimal yet extremely useful tools to extend your cluster's capabilities:
 
-- <ins>k9s:</ins> A terminal-based UI to interact with your Kubernetes cluster. It provides a real-time, intuitive interface for managing applications and resources.
+- <ins>K9S:</ins> A terminal-based UI to interact with your Kubernetes cluster. It provides a real-time, intuitive interface for managing applications and resources.
+
+- <ins>Helm:</ins> The package manager for Kubernetes. It simplifies the process of defining, installing, and managing applications.
 
 - <ins>NGINX Ingress Controller:</ins> An Ingress controller that uses a standard NGINX web server to provide HTTP and HTTPS routing to services within your cluster.
 
