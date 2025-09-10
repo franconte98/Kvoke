@@ -8,8 +8,8 @@
       register: join_command_output
 
     - name: Print the join command
-      ansible.builtin.debug:
-        msg: "{{ join_command_output.stdout }}"
+      ansible.builtin.set_fact:
+        join_command: "{{ join_command_output.stdout }}"
 
 - hosts: workers
   become: true
