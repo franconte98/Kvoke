@@ -78,7 +78,7 @@ function initContainerd {
     sudo systemctl enable containerd --now;
 
     ### Install crictl
-    VER_CRICTL=$(curl --silent -qI https://github.com/kubernetes-sigs/cri-tools/releases/latest | awk -F '/' '/^location/ {print  substr($NF, 1, length($NF)-1)}');
+    VER_CRICTL=$(curl --silent -qI https://github.com/kubernetes-sigs/cri-tools/releases/latest | awk -F '/' '/^location/ {print substr($NF, 1, length($NF)-1)}');
     wget -O crictl-$VER_CRICTL-linux-amd64.tar.gz https://github.com/kubernetes-sigs/cri-tools/releases/download/$VER_CRICTL/crictl-$VER_CRICTL-linux-amd64.tar.gz
     sudo tar zxvf crictl-$VER_CRICTL-linux-amd64.tar.gz -C /usr/local/bin --overwrite
     rm -f crictl-$VER_CRICTL-linux-amd64.tar.gz
@@ -87,23 +87,24 @@ function initContainerd {
 function initCrio {
 
     ### Pre-Installation Cri-O
+    sudo apt-get update -y;
     sudo apt-get install -y software-properties-common;
-    curl -fsSL https://pkgs.k8s.io/addons:/cri-o:/prerelease:/main/deb/Release.key | \
-    sudo gpg --dearmor -o /etc/apt/keyrings/cri-o-apt-keyring.gpg
-    echo "deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://pkgs.k8s.io/addons:/cri-o:/prerelease:/main/deb/ /" | \
-    sudo tee /etc/apt/sources.list.d/cri-o.list;
+    sudo curl -fsSL https://pkgs.k8s.io/addons:/cri-o:/prerelease:/main/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/cri-o-apt-keyring.gpg
+    echo "deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://pkgs.k8s.io/addons:/cri-o:/prerelease:/main/deb/ /" | sudo tee /etc/apt/sources.list.d/cri-o.list;
 
     ### Install, Enable and Start Cri-O
+    sudo apt-get update -y;
     sudo apt-get install -y cri-o;
     sudo systemctl daemon-reload;
     sudo systemctl enable crio --now;
 
     ### Install crictl
-    VER_CRICTL=$(curl --silent -qI https://github.com/kubernetes-sigs/cri-tools/releases/latest | awk -F '/' '/^location/ {print  substr($NF, 1, length($NF)-1)}');
+    VER_CRICTL=$(curl --silent -qI https://github.com/kubernetes-sigs/cri-tools/releases/latest | awk -F '/' '/^location/ {print substr($NF, 1, length($NF)-1)}');
     wget -O crictl-$VER_CRICTL-linux-amd64.tar.gz https://github.com/kubernetes-sigs/cri-tools/releases/download/$VER_CRICTL/crictl-$VER_CRICTL-linux-amd64.tar.gz
     sudo tar zxvf crictl-$VER_CRICTL-linux-amd64.tar.gz -C /usr/local/bin --overwrite
     rm -f crictl-$VER_CRICTL-linux-amd64.tar.gz
 }
+
 
 ### Disable Swap in linux
 sudo swapoff -a;
