@@ -37,4 +37,9 @@
       args:
         executable: /bin/bash
       when: ansible_distribution_file_variety == "Debian"
+      register: lb_result
+
+    - name: Show Ip Address Pool Creation Result
+      ansible.builtin.debug:
+        var: lb_result
 ...
