@@ -104,9 +104,6 @@ function initCrio {
     rm -f crictl-$VER_CRICTL-linux-amd64.tar.gz
 }
 
-### Abort if a command fails
-set -e
-
 ### Disable Swap in linux
 sudo swapoff -a;
 sudo sed -i '/[/]swap.img/ s/^/#/' /etc/fstab;
