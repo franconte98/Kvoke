@@ -450,26 +450,26 @@ function initSimple {
     ### --- Join + Setup ---
 
     ### Join Nodes
-    partial_join_command="$(ansible-playbook ./Config/Simple/playbook_print_join.yaml | grep -Eo 'kubeadm join.*')";
-    case $cri in
-        "Docker")
-            JOIN_COMMAND="$partial_join_command --cri-socket unix:///var/run/cri-dockerd.sock";
-            ;;
-        "Containerd")
-            JOIN_COMMAND="$partial_join_command --cri-socket unix:///run/containerd/containerd.sock";
-            ;;
-        "CRI-O")
-            JOIN_COMMAND="$partial_join_command --cri-socket unix:///var/run/crio/crio.sock";
-            ;;
-        *)
-            clear
-            echo -e "\nInvalid Option!\n"
-            ;;
-    esac
+    #partial_join_command="$(ansible-playbook ./Config/Simple/playbook_print_join.yaml | grep -Eo 'kubeadm join.*')";
+    #case $cri in
+    #    "Docker")
+    #        JOIN_COMMAND="$partial_join_command --cri-socket unix:///var/run/cri-dockerd.sock";
+    #        ;;
+    #    "Containerd")
+    #        JOIN_COMMAND="$partial_join_command --cri-socket unix:///run/containerd/containerd.sock";
+    #        ;;
+    #    "CRI-O")
+    #        JOIN_COMMAND="$partial_join_command --cri-socket unix:///var/run/crio/crio.sock";
+    #        ;;
+    #    *)
+    #        clear
+    #        echo -e "\nInvalid Option!\n"
+    #        ;;
+    #esac
 
     ### Playbook for Joining
     log "Joining all the Nodes"
-    ansible-playbook ./Config/Simple/playbook_join.yaml -e "JOIN_COMMAND='$JOIN_COMMAND'";
+    ansible-playbook ./Config/Simple/playbook_join.yaml;
     if [ $? -ne 0 ]; then
         echo "${NC}${RED}ERROR:${NC} There were some problems and the Worker Nodes did not join. ${NC}${RED}ABORT.${NC}"
         log "ERROR: Some VMs are not reachable by Ansible!"
