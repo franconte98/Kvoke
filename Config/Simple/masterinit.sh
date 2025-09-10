@@ -1,17 +1,34 @@
 #!/bin/bash
 
+# Function to check and wait for the Kubernetes API server to be ready
+function waitForApiServer {
+    until curl --output /dev/null --silent --head --fail "https://$1:6443/livez"; do
+        sleep 5
+    done
+}
+
+
 # Initialization based on CRI
 # Check if Kubernetes is already initialized on this node
 # This checks for the existence of the admin.conf file, which indicates a control plane is set up.
 case $2 in
     "Docker")
-        sudo kubeadm init --upload-certs --control-plane-endpoint="$1" --apiserver-advertise-address="$1" --ignore-preflight-errors=all --cri-socket unix:///var/run/cri-dockerd.sock;
+        sudo kubeadm init --upload-certs \
+            --control-plane-endpoint="$1:6443" \
+            --apiserver-advertise-address="$1" \
+            --cri-socket unix:///var/run/cri-dockerd.sock
         ;;
     "Containerd")
-        sudo kubeadm init --upload-certs --control-plane-endpoint="$1" --apiserver-advertise-address="$1" --ignore-preflight-errors=all --cri-socket unix:///run/containerd/containerd.sock;
+        sudo kubeadm init --upload-certs \
+            --control-plane-endpoint="$1:6443" \
+            --apiserver-advertise-address="$1" \
+            --cri-socket unix:///run/containerd/containerd.sock
         ;;
     "CRI-O")
-        sudo kubeadm init --upload-certs --control-plane-endpoint="$1" --apiserver-advertise-address="$1" --ignore-preflight-errors=all --cri-socket unix:///var/run/crio/crio.sock;
+        sudo kubeadm init --upload-certs \
+            --control-plane-endpoint="$1:6443" \
+            --apiserver-advertise-address="$1" \
+            --cri-socket unix:///var/run/crio/crio.sock
         ;;
     *)
         clear
@@ -20,9 +37,18 @@ case $2 in
         ;;
 esac
 
-mkdir -p "$HOME/.kube";
-sudo cp -f /etc/kubernetes/admin.conf "$HOME/.kube/config";
-sudo chown "$(id -u)":"$(id -g)" "$HOME/.kube/config";
+if [ -f /etc/kubernetes/admin.conf ]; then
+    mkdir -p "$HOME/.kube"
+    sudo cp -f /etc/kubernetes/admin.conf "$HOME/.kube/config"
+    sudo chown "$(id -u)":"$(id -g)" "$HOME/.kube/config"
+    export KUBECONFIG="$HOME/.kube/config"
+else
+    echo "Error: kubeadm init failed. The /etc/kubernetes/admin.conf file was not created."
+    exit 1
+fi
+
+# Wait for the API server to be ready before applying any manifests
+waitForApiServer "$1"
 
 ### Append mode: "ipvs"
 kubectl get configmap kube-proxy -n kube-system -o yaml | \
