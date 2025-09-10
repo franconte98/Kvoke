@@ -1,5 +1,5 @@
 ---
-- hosts: master_ip
+- hosts: masters
   become: true
   become_method: sudo
   tasks:
