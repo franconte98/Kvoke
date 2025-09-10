@@ -49,15 +49,9 @@ SocketGroup=docker
 WantedBy=sockets.target
 EOF
 
-    sudo systemctl daemon-reload
-    sudo systemctl enable --now cri-docker.socket
-    sudo systemctl start cri-docker
-
-    # Docker-compose install
-    DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
-    sudo mkdir -p "$DOCKER_CONFIG/cli-plugins"
-    sudo curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o "$DOCKER_CONFIG/cli-plugins/docker-compose"
-    sudo chmod +x "$DOCKER_CONFIG/cli-plugins/docker-compose"
+    sudo systemctl daemon-reload;
+    sudo systemctl enable --now cri-docker.socket;
+    sudo systemctl start cri-docker;
 }
 
 function initContainerd {
@@ -133,18 +127,19 @@ sudo apt install net-tools apt-transport-https ca-certificates curl gpg -y;
 ### Retreive the latest version of Kubernetes and store it in $VER_K8S_Latest
 Version_K8S_Latest="$(curl -sSL https://dl.k8s.io/release/stable.txt)";
 Version_K8S_Stable=$(echo $Version_K8S_Latest | cut -d '.' -f 1)"."$(echo $Version_K8S_Latest | cut -d '.' -f 2);
+
 ### Install Kubernetes components
 curl -fsSL https://pkgs.k8s.io/core:/stable:/$Version_K8S_Stable/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg;
 echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/'$Version_K8S_Stable'/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list;
-### Install Helm
-curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null;
-sudo chmod a+r /usr/share/keyrings/helm.gpg;
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list > /dev/null;
-### Install Components
 sudo apt-get update -y;
-sudo apt-get install -y kubelet kubeadm kubectl helm;
+sudo apt-get install -y kubelet kubeadm kubectl;
 sudo apt-mark hold kubelet kubeadm kubectl;
-sudo systemctl enable --now kubelet;
+
+### Install Helm
+curl -fsSL https://packages.buildkite.com/helm-linux/helm-debian/gpgkey | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null;
+echo "deb [signed-by=/usr/share/keyrings/helm.gpg] https://packages.buildkite.com/helm-linux/helm-debian/any/ any main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list;
+sudo apt-get update -y;
+sudo apt-get install helm -y;
 
 ### CNI Plugins
 VER_CNI_PLUGINS=$(curl --silent -qI https://github.com/containernetworking/plugins/releases/latest | awk -F '/' '/^location/ {print  substr($NF, 1, length($NF)-1)}');
