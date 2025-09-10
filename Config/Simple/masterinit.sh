@@ -69,7 +69,3 @@ helm upgrade --install --namespace kgateway-system --version "$VER_KGATEWAY_HELM
 ### Add k9s (Complete Dashboard accessible from Command Line)
 sudo snap install k9s;
 sudo ln -sf /snap/k9s/current/bin/k9s /snap/bin/;
-
-### Increase the number of lines to be logged in k9s
-sed -i 's/tail.*/tail: 1000/' "$HOME/.config/k9s/config.yml";
-sed -i 's/buffer.*/buffer: 500/' "$HOME/.config/k9s/config.yml";
