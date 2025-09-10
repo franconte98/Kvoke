@@ -2,14 +2,15 @@
 
 function initDocker {
 
+    VER_CRI_DOCKER=$(curl --silent -qI https://github.com/Mirantis/cri-dockerd/releases/latest | awk -F '/' '/^location/ {print  substr($NF, 1, length($NF)-1)}'); 
+    wget https://github.com/Mirantis/cri-dockerd/releases/download/$VER_CRI_DOCKER/cri-dockerd-${VER_CRI_DOCKER#v}.amd64.tgz;
+    tar -xvf cri-dockerd-${VER_CRI_DOCKER#v}.amd64.tgz;
     sudo apt-get install -y docker.io docker-buildx;
     sudo systemctl enable --now docker;
+    cd cri-dockerd || exit;
+    mkdir -p /usr/local/bin;
+    install -o root -g root -m 0755 ./cri-dockerd /usr/local/bin/cri-dockerd;
 
-    VER_CRI_DOCKER=$(curl -sL https://api.github.com/repos/Mirantis/cri-dockerd/releases/latest | grep "tag_name" | cut -d'"' -f4);
-    wget -q --show-progress "https://github.com/Mirantis/cri-dockerd/releases/download/$VER_CRI_DOCKER/cri-dockerd-$VER_CRI_DOCKER-linux-amd64.tar.gz";
-    sudo tar -xvf "cri-dockerd-$VER_CRI_DOCKER-linux-amd64.tar.gz" --overwrite;
-    sudo install -o root -g root -m 0755 cri-dockerd/cri-dockerd /usr/local/bin/cri-dockerd;
-    sudo rm -rf cri-dockerd*;
 
     sudo tee /etc/systemd/system/cri-docker.service > /dev/null << EOF
 [Unit]
@@ -51,7 +52,7 @@ EOF
 
     sudo systemctl daemon-reload;
     sudo systemctl enable --now cri-docker.socket;
-    sudo systemctl start cri-docker;
+    sudo systemctl enable --now cri-docker.service;
 }
 
 function initContainerd {
