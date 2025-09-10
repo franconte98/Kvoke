@@ -450,7 +450,7 @@ function initSimple {
     ### --- Join + Setup ---
 
     ### Join Nodes
-    partial_join_command="$(kubeadm token create --print-join-command)";
+    partial_join_command="$(ansible-playbook ./Config/Simple/playbook_print_join.yaml | grep -Eo 'kubeadm join.*')";
     case $cri in
         "Docker")
             JOIN_COMMAND="$partial_join_command --cri-socket unix:///var/run/cri-dockerd.sock";
