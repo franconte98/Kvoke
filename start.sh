@@ -429,7 +429,7 @@ function initSimple {
 
     ### Playbook w// init.sh
     log "Initiating all the Nodes"
-    ansible-playbook ./Config/Simple/playbook_init.yaml -vvv;
+    ansible-playbook ./Config/Simple/playbook_init.yaml -vv;
     if [ $? -ne 0 ]; then
         echo "${NC}${RED}ERROR:${NC} There were some problems and the Initiation did not succeed. ${NC}${RED}ABORT.${NC}"
         log "ERROR: Some VMs are not reachable by Ansible!"
@@ -441,7 +441,7 @@ function initSimple {
     ### Creating the Cluster
     log "Creating the Cluster and Installing all the additional tools for the Cluster"
     #./Config/Simple/masterinit.sh $ip_master $cri
-    ansible-playbook ./Config/Simple/playbook_create.yaml -vvv;
+    ansible-playbook ./Config/Simple/playbook_create.yaml -vv;
     if [ $? -ne 0 ]; then
         echo "${NC}${RED}ERROR:${NC} Something went wrong initiating the cluster with Kubeadm! ${NC}${RED}ABORT.${NC}"
         log "ERROR: Something went wrong initiating the cluster with Kubeadm!"
@@ -470,7 +470,7 @@ function initSimple {
 
     ### Playbook for Joining
     log "Joining all the Nodes"
-    ansible-playbook ./Config/Simple/playbook_join.yaml -e "JOIN_COMMAND='$JOIN_COMMAND'" -vvv;
+    ansible-playbook ./Config/Simple/playbook_join.yaml -e "JOIN_COMMAND='$JOIN_COMMAND'" -vv;
     if [ $? -ne 0 ]; then
         echo "${NC}${RED}ERROR:${NC} There were some problems and the Worker Nodes did not join. ${NC}${RED}ABORT.${NC}"
         log "ERROR: Some VMs are not reachable by Ansible!"
@@ -479,7 +479,7 @@ function initSimple {
 
     ### IPAddressPool for MetalLB
     log "Adding the Load Balancer Range."
-    ansible-playbook ./Config/Simple/playbook_lb.yaml -vvv;
+    ansible-playbook ./Config/Simple/playbook_lb.yaml -vv;
 
     ### End Of Process
     log "Installation and Configuration are done!"
