@@ -1,4 +1,16 @@
 ---
+- hosts: masters
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Generate the join command
+      ansible.builtin.command: kubeadm token create --print-join-command
+      register: join_command_output
+
+    - name: Print the join command
+      ansible.builtin.debug:
+        msg: "{{ join_command_output.stdout }}"
+
 - hosts: workers
   become: true
   become_method: sudo
@@ -8,9 +20,25 @@
         path: /etc/kubernetes/kubelet.conf
       register: kube_joined_status
 
-    - name: Joining all the Worker Nodes
-      ansible.builtin.command: "{{ JOIN_COMMAND }}"
+    - name: Get the CRI socket path
+      ansible.builtin.set_fact:
+        cri_socket: |
+          {% if cri == 'Docker' %}
+          unix:///var/run/cri-dockerd.sock
+          {% elif cri == 'Containerd' %}
+          unix:///run/containerd/containerd.sock
+          {% elif cri == 'CRI-O' %}
+          unix:///var/run/crio/crio.sock
+          {% endif %}
+
+    - name: Join the Worker Node
+      ansible.builtin.shell: "{{ hostvars[groups['masters'][0]]['join_command'] }} --cri-socket {{ cri_socket }}"
       when:
         - ansible_distribution_file_variety == "Debian"
         - not kube_joined_status.stat.exists
+      register: worker_join_result
+      
+    - name: Show join result
+      ansible.builtin.debug:
+        var: worker_join_result
 ...
