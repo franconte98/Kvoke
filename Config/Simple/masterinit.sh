@@ -1,16 +1,6 @@
 #!/bin/bash
 
-# Function to check and wait for the Kubernetes API server to be ready
-function waitForApiServer {
-    until curl --output /dev/null --silent --head --fail "https://$1:6443/livez"; do
-        sleep 5
-    done
-}
-
-
 # Initialization based on CRI
-# Check if Kubernetes is already initialized on this node
-# This checks for the existence of the admin.conf file, which indicates a control plane is set up.
 case $2 in
     "Docker")
         sudo kubeadm init --upload-certs \
@@ -43,12 +33,12 @@ if [ -f /etc/kubernetes/admin.conf ]; then
     sudo chown "$(id -u)":"$(id -g)" "$HOME/.kube/config"
     export KUBECONFIG="$HOME/.kube/config"
 else
-    echo "Error: kubeadm init failed. The /etc/kubernetes/admin.conf file was not created."
     exit 1
 fi
 
-# Wait for the API server to be ready before applying any manifests
-waitForApiServer "$1"
+### Install Weave as a Network Plugin
+VER_LATEST_WEAVE=$(curl --silent -qI https://github.com/weaveworks/weave/releases/latest | awk -F '/' '/^location/ {print substr($NF, 1, length($NF)-1)}');
+kubectl apply -f https://github.com/weaveworks/weave/releases/download/$VER_LATEST_WEAVE/weave-daemonset-k8s.yaml;
 
 ### Append mode: "ipvs"
 kubectl get configmap kube-proxy -n kube-system -o yaml | \
@@ -83,7 +73,3 @@ sudo ln -sf /snap/k9s/current/bin/k9s /snap/bin/;
 ### Increase the number of lines to be logged in k9s
 sed -i 's/tail.*/tail: 1000/' "$HOME/.config/k9s/config.yml";
 sed -i 's/buffer.*/buffer: 500/' "$HOME/.config/k9s/config.yml";
-
-### Install Weave as a Network Plugin
-VER_LATEST_WEAVE=$(curl --silent -qI https://github.com/weaveworks/weave/releases/latest | awk -F '/' '/^location/ {print substr($NF, 1, length($NF)-1)}');
-kubectl apply -f https://github.com/weaveworks/weave/releases/download/$VER_LATEST_WEAVE/weave-daemonset-k8s.yaml;
