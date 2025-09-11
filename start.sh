@@ -733,7 +733,13 @@ function initStacked {
     fi
 
     # --- KubeConfig Setup ---
+    log "Passing the KubeConfigs"
     ansible-playbook ./Config/Stacked/playbook_kubeconfig.yaml;
+    if [ $? -ne 0 ]; then
+        echo "${NC}${RED}ERROR:${NC} There were some problems passing the KubeConfigs! ${NC}${RED}ABORT.${NC}"
+        log "ERROR: There were some problems passing the KubeConfigs!"
+        abortExec
+    fi
 
     ### Configure KeepAliveD on Master Nodes
     log "Installing and Configuring KeepAliveD"
