@@ -1,0 +1,21 @@
+---
+- hosts: masters[0]
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Store the initialization file on the Master Node
+      ansible.builtin.copy:
+        src: stackedinit.sh
+        dest: /tmp/stackedinit.sh
+        mode: '0755'
+      when: ansible_distribution_file_variety == "Debian"
+    
+    - name: Create the Cluster starting from the Master Node
+      ansible.builtin.command: /tmp/stackedinit.sh {{ ansible_host }} {{ cri }} {{ vip_ip }}
+      when: ansible_distribution_file_variety == "Debian"
+      register: create_result
+
+    - name: Show Creation Cluster Result
+      ansible.builtin.debug:
+        var: create_result
+...

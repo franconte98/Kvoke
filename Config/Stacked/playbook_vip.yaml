@@ -9,9 +9,42 @@
         state: present
         update_cache: yes # Update apt cache before installing
 
-    - name: Create Keepalived configuration file for Master
-      ansible.builtin.template:
-        src: keepalived.conf
+    - name: Create keepalived.conf file
+      ansible.builtin.copy:
+        content: |
+          global_defs {
+              vrrp_version 2
+              vrrp_garp_master_delay 1
+              vrrp_garp_master_refresh 60
+              script_user root
+              enable_script_security
+          }
+
+          vrrp_script chk_script {
+              script "/usr/bin/curl --silent --max-time 30 --insecure https://127.0.0.1:6443/readyz -o /dev/null"
+              interval 20 # check every 3 second
+              fall 3 # require 2 failures for OK
+              rise 2 # require 2 successes for OK
+          }
+
+          vrrp_instance lb-vips {
+              state BACKUP
+              interface {{ network_interface }}
+              virtual_router_id 206
+              priority 100
+              advert_int 1
+              nopreempt # Prevent fail-back
+              track_script {
+                  chk_script
+              }
+              authentication {
+                  auth_type PASS
+                  auth_pass password
+              }
+              virtual_ipaddress {
+                  {{ vip_ip }}/32 dev {{ network_interface }}
+              }
+          }
         dest: /etc/keepalived/keepalived.conf
         owner: root
         group: root

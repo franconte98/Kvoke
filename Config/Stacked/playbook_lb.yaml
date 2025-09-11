@@ -1,0 +1,45 @@
+---
+- hosts: masters[0]
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Configure MetalLB IP Address Pool
+      ansible.builtin.shell: |
+        cat <<EOF | kubectl apply -f -
+        apiVersion: metallb.io/v1beta1
+        kind: IPAddressPool
+        metadata:
+          name: first-pool
+          namespace: metallb-system
+        spec:
+          addresses:
+          - {{ show_range }}
+          autoAssign: true
+        ---
+        apiVersion: metallb.io/v1beta1
+        kind: L2Advertisement
+        metadata:
+          name: l2
+          namespace: metallb-system
+        spec:
+          ipAddressPools:
+          - first-pool
+        ---
+        apiVersion: metallb.io/v1beta1
+        kind: BGPAdvertisement
+        metadata:
+          name: example
+          namespace: metallb-system
+        spec:
+          ipAddressPools:
+          - first-pool
+        EOF
+      args:
+        executable: /bin/bash
+      when: ansible_distribution_file_variety == "Debian"
+      register: lb_result
+
+    - name: Show Ip Address Pool Creation Result
+      ansible.builtin.debug:
+        var: lb_result
+...
