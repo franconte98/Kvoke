@@ -19,11 +19,3 @@ helm upgrade -i --namespace kgateway-system --version $VER_KGATEWAY_HELM kgatewa
 ### Add k9s (Complete Dashboard accessible from Command Line)
 sudo snap install k9s;
 sudo ln -s /snap/k9s/current/bin/k9s /snap/bin/;
-
-### Increase the number of lines to be logged in k9s
-sed -i 's/tail.*/tail: 1000/' ~/.config/k9s/config.yml;
-sed -i 's/buffer.*/buffer: 500/' ~/.config/k9s/config.yml;
-
-### Install Weave as a Network Plugin
-VER_LATEST_WEAVE=$(curl --silent -qI https://github.com/weaveworks/weave/releases/latest | awk -F '/' '/^location/ {print  substr($NF, 1, length($NF)-1)}');
-kubectl apply -f https://github.com/weaveworks/weave/releases/download/$VER_LATEST_WEAVE/weave-daemonset-k8s.yaml;

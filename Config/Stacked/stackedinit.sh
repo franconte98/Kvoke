@@ -46,24 +46,25 @@ etcd:
 EOF
 sudo kubeadm init --upload-certs --config /tmp/kubeadm_config.yaml
 
-mkdir -p $HOME/.kube;
-sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config;
-sudo chown $(id -u):$(id -g) $HOME/.kube/config;
+if [ -f /etc/kubernetes/admin.conf ]; then
+    mkdir -p "$HOME/.kube"
+    sudo cp -f /etc/kubernetes/admin.conf "$HOME/.kube/config"
+    sudo chown "$(id -u)":"$(id -g)" "$HOME/.kube/config"
+    export KUBECONFIG="$HOME/.kube/config"
+else
+    exit 1
+fi
+
+### Install Weave as a Network Plugin
+VER_LATEST_WEAVE=$(curl --silent -qI https://github.com/weaveworks/weave/releases/latest | awk -F '/' '/^location/ {print substr($NF, 1, length($NF)-1)}');
+kubectl apply -f https://github.com/weaveworks/weave/releases/download/$VER_LATEST_WEAVE/weave-daemonset-k8s.yaml;
 
 ### Append mode: "ipvs"
-kubectl get configmap kube-proxy -n kube-system -o yaml | \
-sed -e "s/mode: \"\"/mode: \"ipvs\"/" | \
-kubectl diff -f - -n kube-system;
-### 
 kubectl get configmap kube-proxy -n kube-system -o yaml | \
 sed -e "s/mode: \"\"/mode: \"ipvs\"/" | \
 kubectl apply -f - -n kube-system;
 
 ### Append strictARP: true
-kubectl get configmap kube-proxy -n kube-system -o yaml | \
-sed -e "s/strictARP: false/strictARP: true/" | \
-kubectl diff -f - -n kube-system;
-### 
 kubectl get configmap kube-proxy -n kube-system -o yaml | \
 sed -e "s/strictARP: false/strictARP: true/" | \
 kubectl apply -f - -n kube-system;

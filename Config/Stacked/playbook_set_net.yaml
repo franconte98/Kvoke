@@ -9,12 +9,24 @@
       register: interface_output
       changed_when: false
 
+    - name: Set the network interface name as a fact
+      ansible.builtin.set_fact:
+        network_interface: "{{ interface_output.stdout }}"
+
     - name: Add the load balancer IP to the found interface
       ansible.builtin.shell: |
-        ip add add {{ vip_ip }}/32 dev {{ interface_output.stdout }}
-      changed_when: true
+        ip addr add {{ vip_ip }}/32 dev {{ network_interface }}
+      when: network_interface is defined
 
-    - name: Print the network interface name
-      ansible.builtin.debug:
-        msg: "{{ interface_output.stdout }}"
+    - name: Verify that the virtual IP was added (optional)
+      ansible.builtin.command: "ip a | grep '{{ vip_ip }}'"
+      register: verify_ip
+      changed_when: false
+
+    - name: Echo the network interface name for external use
+      ansible.builtin.shell: |
+        echo "{{ network_interface }}"
+      register: result_output
+      changed_when: false
+      when: verify_ip.stdout is defined and verify_ip.stdout | length > 0
 ...

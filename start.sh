@@ -708,7 +708,7 @@ function initStacked {
     fi
 
     ### Setup the Network for KeepAliveD
-    network_interface="$(ansible-playbook ./Config/Stacked/playbook_set_net.yaml | grep 'MSG:' | awk '{print $2}')";
+    network_interface="$(ansible-playbook ./Config/Stacked/playbook_set_net.yaml | tail -n 1)";
     echo $network_interface;
 
     ### --- Creation ---
