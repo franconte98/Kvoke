@@ -724,13 +724,13 @@ function initStacked {
     ### --- Join + Setup ---
 
     ### Load Certificates
-    log "Loading the Certificates to all the Master Nodes"
-    ansible-playbook ./Config/Stacked/playbook-loadcerts.yaml;
-    if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} Something went wrong transfering the certs to the other masters! ${NC}${RED}ABORT.${NC}"
-        log "ERROR: Something went wrong transfering the certs to the other masters!"
-        abortExec
-    fi
+    #log "Loading the Certificates to all the Master Nodes"
+    #ansible-playbook ./Config/Stacked/playbook-loadcerts.yaml;
+    #if [ $? -ne 0 ]; then
+    #    echo "${NC}${RED}ERROR:${NC} Something went wrong transfering the certs to the other masters! ${NC}${RED}ABORT.${NC}"
+    #    log "ERROR: Something went wrong transfering the certs to the other masters!"
+    #    abortExec
+    #fi
 
     ### Playbook for Joining
     log "Joining all the Nodes in the Cluster"
