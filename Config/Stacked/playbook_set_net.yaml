@@ -5,7 +5,7 @@
   tasks:
     - name: Find the network interface for the primary IP
       ansible.builtin.shell: |
-        ip a | grep {{ masters[0] }} | awk '{ print $NF }'
+        ip a | grep {{ ansible_host }} | awk '{ print $NF }'
       register: interface_output
       changed_when: false
 
@@ -19,14 +19,6 @@
       when: network_interface is defined
 
     - name: Verify that the virtual IP was added (optional)
-      ansible.builtin.command: "ip a | grep '{{ vip_ip }}'"
-      register: verify_ip
+      ansible.builtin.shell: "ip a | grep '{{ vip_ip }}'"
       changed_when: false
-
-    - name: Echo the network interface name for external use
-      ansible.builtin.shell: |
-        echo "{{ network_interface }}"
-      register: result_output
-      changed_when: false
-      when: verify_ip.stdout is defined and verify_ip.stdout | length > 0
 ...
