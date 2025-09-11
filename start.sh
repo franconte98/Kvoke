@@ -708,8 +708,7 @@ function initStacked {
     fi
 
     ### Setup the Network for KeepAliveD
-    ansible-playbook ./Config/Stacked/playbook_set_net.yaml
-    echo $network_interface;
+    ansible-playbook ./Config/Stacked/playbook_set_net.yaml;
 
     ### --- Creation ---
 
