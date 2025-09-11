@@ -529,36 +529,6 @@ function inventoryStacked {
 
 }
 
-# --- Upload Certificates ---
-function loadCerts {
-    LOAD_CERTS_COMMANDS="
-    mkdir -p /etc/kubernetes/pki
-    mkdir -p /etc/kubernetes/pki/etcd
-    mv "/home/$username/ca.crt" "/etc/kubernetes/pki/ca.crt" && chmod 644 "/etc/kubernetes/pki/ca.crt" && chown root:root "/etc/kubernetes/pki/ca.crt"
-    mv "/home/$username/ca.key" "/etc/kubernetes/pki/ca.key" && chmod 600 "/etc/kubernetes/pki/ca.key" && chown root:root "/etc/kubernetes/pki/ca.key"
-    mv "/home/$username/etcd-ca.crt" "/etc/kubernetes/pki/etcd/ca.crt" && chmod 644 "/etc/kubernetes/pki/etcd/ca.crt" && chown root:root "/etc/kubernetes/pki/etcd/ca.crt"
-    mv "/home/$username/etcd-ca.key" "/etc/kubernetes/pki/etcd/ca.key" && chmod 600 "/etc/kubernetes/pki/etcd/ca.key" && chown root:root "/etc/kubernetes/pki/etcd/ca.key"
-    mv "/home/$username/front-proxy-ca.crt" "/etc/kubernetes/pki/front-proxy-ca.crt" && chmod 644 "/etc/kubernetes/pki/front-proxy-ca.crt" && chown root:root "/etc/kubernetes/pki/front-proxy-ca.crt"
-    mv "/home/$username/front-proxy-ca.key" "/etc/kubernetes/pki/front-proxy-ca.key" && chmod 600 "/etc/kubernetes/pki/front-proxy-ca.key" && chown root:root "/etc/kubernetes/pki/front-proxy-ca.key"
-    mv "/home/$username/sa.pub" "/etc/kubernetes/pki/sa.pub" && chmod 644 "/etc/kubernetes/pki/sa.pub" && chown root:root "/etc/kubernetes/pki/sa.pub"
-    mv "/home/$username/sa.key" "/etc/kubernetes/pki/sa.key" && chmod 600 "/etc/kubernetes/pki/sa.key" && chown root:root "/etc/kubernetes/pki/sa.key"
-    "
-
-    # --- Certificates Upload ---
-    for (( c=2; c<=$count_masters; c++ ))
-    do
-        sshpass -p $passwd scp -o StrictHostKeyChecking=no /etc/kubernetes/pki/ca.crt $username@${master_ips[$c]}: || { echo "ERROR: Failed to scp ca.crt to ${master_ips[$c]}"; }
-        sshpass -p $passwd scp -o StrictHostKeyChecking=no /etc/kubernetes/pki/ca.key $username@${master_ips[$c]}: || { echo "ERROR: Failed to scp ca.key to ${master_ips[$c]}"; }
-        sshpass -p $passwd scp -o StrictHostKeyChecking=no /etc/kubernetes/pki/etcd/ca.crt $username@${master_ips[$c]}:etcd-ca.crt || { echo "ERROR: Failed to scp /etcd/ca.crt to ${master_ips[$c]}"; }
-        sshpass -p $passwd scp -o StrictHostKeyChecking=no /etc/kubernetes/pki/etcd/ca.key $username@${master_ips[$c]}:etcd-ca.key || { echo "ERROR: Failed to scp /etcd/ca.key to ${master_ips[$c]}"; }
-        sshpass -p $passwd scp -o StrictHostKeyChecking=no /etc/kubernetes/pki/front-proxy-ca.crt $username@${master_ips[$c]}: || { echo "ERROR: Failed to scp front-proxy-ca.crt to ${master_ips[$c]}"; }
-        sshpass -p $passwd scp -o StrictHostKeyChecking=no /etc/kubernetes/pki/front-proxy-ca.key $username@${master_ips[$c]}: || { echo "ERROR: Failed to scp front-proxy-ca.key to ${master_ips[$c]}"; }
-        sshpass -p $passwd scp -o StrictHostKeyChecking=no /etc/kubernetes/pki/sa.pub $username@${master_ips[$c]}: || { echo "ERROR: Failed to scp sa.pub to ${master_ips[$c]}"; }
-        sshpass -p $passwd scp -o StrictHostKeyChecking=no /etc/kubernetes/pki/sa.key $username@${master_ips[$c]}: || { echo "ERROR: Failed to scp sa.key to ${master_ips[$c]}"; }
-        sshpass -p $passwd ssh -o StrictHostKeyChecking=no $username@${master_ips[$c]} "echo $passwd | sudo -S bash -c \"$LOAD_CERTS_COMMANDS\"" || { echo "ERROR: Failed to execute the LOAD CERTS COMMAND to ${master_ips[$c]}"; }
-    done
-}
-
 # --- Menu Stacked Configuration ---
 function menuStacked {
 

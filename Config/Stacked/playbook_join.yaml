@@ -9,7 +9,7 @@
 
     - name: Set the join command as a fact
       ansible.builtin.set_fact:
-        join_command: "{{ join_command_output.stdout.split() | join(' ') }}"
+        join_command: "{{ join_command_output.stdout | replace('\n', '') | trim }}"
 
 - hosts: masters,workers
   become: true
@@ -32,7 +32,7 @@
           {% endif %}
 
     - name: Join the Master Nodes
-      ansible.builtin.shell: "{{ hostvars[groups['masters'][0]]['join_command'] }} --cri-socket {{ cri_socket }} --control-plane"
+      ansible.builtin.shell: "{{ hostvars[groups['masters'][0]]['join_command'] }} --cri-socket={{ cri_socket }} --control-plane"
       when:
         - inventory_hostname in groups['masters']
         - inventory_hostname != groups['masters'][0]
@@ -41,7 +41,7 @@
       register: master_join_result
 
     - name: Join the Worker Nodes
-      ansible.builtin.shell: "{{ hostvars[groups['masters'][0]]['join_command'] }} --cri-socket {{ cri_socket }}"
+      ansible.builtin.shell: "{{ hostvars[groups['masters'][0]]['join_command'] }} --cri-socket={{ cri_socket }}"
       when:
         - inventory_hostname in groups['workers']
         - ansible_distribution_file_variety == "Debian"
