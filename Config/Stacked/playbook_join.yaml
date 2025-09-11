@@ -9,7 +9,7 @@
 
     - name: Set the join command as a fact
       ansible.builtin.set_fact:
-        join_command: "{{ join_command_output.stdout | replace('\n', '') | trim }}"
+        join_command: "{{ join_command_output.stdout.split() | join(' ') }}"
 
 - hosts: masters,workers
   become: true
@@ -22,7 +22,7 @@
 
     - name: Get the CRI socket path
       ansible.builtin.set_fact:
-        cri_socket: |
+        cri_socket: >
           {% if cri == 'Docker' %}
           unix:///var/run/cri-dockerd.sock
           {% elif cri == 'Containerd' %}
