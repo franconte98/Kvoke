@@ -10,6 +10,23 @@
     - name: Set the join command as a fact
       ansible.builtin.set_fact:
         join_command: "{{ join_command_output.stdout.split() | join(' ') }}"
+    
+    - name: Run kubeadm upload-certs on the primary (via VIP or host)
+      become: true
+      shell: kubeadm init phase upload-certs --upload-certs
+      register: upload_certs
+      changed_when: "'certificate key' in upload_certs.stdout"
+      failed_when: upload_certs.rc != 0 and "'already uploaded' not in upload_certs.stderr"
+
+    - name: Extract certificate key from output
+      set_fact:
+        kubeadm_certificate_key: "{{ upload_certs.stdout | regex_search('(?mi)certificate key:\\s*(\\S+)', '\\1') }}"
+      when: upload_certs.stdout is defined
+
+    - name: Fail if we couldn't extract certificate key
+      fail:
+        msg: "Unable to extract kubeadm certificate key. Output: {{ upload_certs.stdout }} {{ upload_certs.stderr }}"
+      when: kubeadm_certificate_key is not defined
 
 - hosts: masters,workers
   become: true
@@ -30,7 +47,7 @@
 
 
     - name: Join the Master Nodes
-      ansible.builtin.shell: "{{ hostvars[groups['masters'][0]]['join_command'] }} --cri-socket={{ cri_socket }} --control-plane"
+      ansible.builtin.shell: "{{ hostvars[groups['masters'][0]]['join_command'] }} --certificate-key {{ hostvars[groups['masters'][0]]['kubeadm_certificate_key'] }} --cri-socket={{ cri_socket }} --control-plane"
       when:
         - inventory_hostname in groups['masters']
         - inventory_hostname != groups['masters'][0]
