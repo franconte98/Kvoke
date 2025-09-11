@@ -6,7 +6,7 @@
     - name: Fetch certificates to local temporary directory
       ansible.builtin.fetch:
         src: "{{ item }}"
-        dest: "/tmp/fetched_certs/{{ inventory_hostname }}/"
+        dest: "/tmp/fetched_certs/"
         flat: yes
       loop:
         - /etc/kubernetes/pki/ca.crt
@@ -35,7 +35,7 @@
 
     - name: Copy fetched certificates to secondary masters
       ansible.builtin.copy:
-        src: "/tmp/fetched_certs/{{ groups['masters'][0] | default('') }}/{{ item.src }}"
+        src: "/tmp/fetched_certs/{{ item.src | basename }}"
         dest: "{{ item.dest }}"
         owner: root
         group: root
@@ -43,8 +43,8 @@
       loop:
         - { src: 'ca.crt', dest: '/etc/kubernetes/pki/ca.crt', mode: '0644' }
         - { src: 'ca.key', dest: '/etc/kubernetes/pki/ca.key', mode: '0600' }
-        - { src: 'etcd-ca.crt', dest: '/etc/kubernetes/pki/etcd/ca.crt', mode: '0644' }
-        - { src: 'etcd-ca.key', dest: '/etc/kubernetes/pki/etcd/ca.key', mode: '0600' }
+        - { src: 'etcd/ca.crt', dest: '/etc/kubernetes/pki/etcd/ca.crt', mode: '0644' }
+        - { src: 'etcd/ca.key', dest: '/etc/kubernetes/pki/etcd/ca.key', mode: '0600' }
         - { src: 'front-proxy-ca.crt', dest: '/etc/kubernetes/pki/front-proxy-ca.crt', mode: '0644' }
         - { src: 'front-proxy-ca.key', dest: '/etc/kubernetes/pki/front-proxy-ca.key', mode: '0600' }
         - { src: 'sa.pub', dest: '/etc/kubernetes/pki/sa.pub', mode: '0644' }
