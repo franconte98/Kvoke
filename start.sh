@@ -526,6 +526,7 @@ function inventoryStacked {
     echo "username=$username" >> "$OUTPUT_FILE"
     echo "passwd=$passwd" >> "$OUTPUT_FILE"
     echo "vip_ip=$lb_ip" >> "$OUTPUT_FILE"
+    echo "show_range=$show_range" >> "$OUTPUT_FILE"
 
 }
 
