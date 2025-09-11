@@ -1,4 +1,18 @@
 ---
+- hosts: masters[0]
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Find the network interface for the VIP
+      ansible.builtin.shell: |
+        ip a | grep {{ ansible_host }} | awk '{ print $NF }'
+      register: interface_output
+      changed_when: false
+
+    - name: Set the network interface name as a fact
+      ansible.builtin.set_fact:
+        network_interface: "{{ interface_output.stdout }}"
+
 - hosts: masters
   become: true
   become_method: sudo
@@ -29,7 +43,7 @@
 
           vrrp_instance lb-vips {
               state BACKUP
-              interface {{ network_interface }}
+              interface {{ hostvars[groups['masters'][0]]['network_interface'] }}
               virtual_router_id 206
               priority 100
               advert_int 1
@@ -42,7 +56,7 @@
                   auth_pass password
               }
               virtual_ipaddress {
-                  {{ vip_ip }}/32 dev {{ network_interface }}
+                  {{ vip_ip }}/32 dev {{ hostvars[groups['masters'][0]]['network_interface'] }}
               }
           }
         dest: /etc/keepalived/keepalived.conf
