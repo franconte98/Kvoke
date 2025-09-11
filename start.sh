@@ -652,6 +652,44 @@ function initStacked {
     ### --- Initialization ---
 
     clear
+    
+    for (( c=1; c<=$count_masters; c++ ))
+    do
+        echo "${master_ips[$c]}"
+    done
+    echo ""
+    # Workers
+    echo "[workers]"
+    for (( c=1; c<=$count_workers; c++ ))
+    do
+        echo "${worker_ips[$c]}"
+    done
+    echo ""
+    # All IPs
+    echo "[all_vms:children]"
+    echo "masters"
+    echo "workers"
+    echo ""
+    # Credentials and Attributes
+    echo "[all_vms:vars]"
+    echo "ansible_user=$username"
+    echo "ansible_ssh_pass=$passwd"
+    echo "ansible_become_pass=$passwd"
+    echo "count_workers=$count_workers"
+    for (( c=1; c<=$count_workers; c++ ))
+    do
+        echo "worker$c=${worker_ips[$c]}"
+    done
+    echo "count_masters=$count_masters"
+    for (( c=1; c<=$count_masters; c++ ))
+    do
+        echo "master$c=${master_ips[$c]}"
+    done
+    echo "cri=$cri"
+    echo "username=$username"
+    echo "passwd=$passwd"
+    echo "vip_ip=$lb_ip"
+
     log "Creating K8S Cluster with STACKED ETCD Configuration"
 
     ### Install Tools on the HOST
@@ -700,6 +738,7 @@ function initStacked {
 
     ### Setup the Network for KeepAliveD
     network_interface="$(ansible-playbook ./Config/Stacked/playbook_set_net.yaml | grep 'MSG:' | awk '{print $2}')";
+    echo $network_interface;
 
     ### --- Creation ---
 
@@ -781,7 +820,7 @@ function initStacked {
 ##                                            Executive Section                                                           ##
 ############################################################################################################################
 
-mkdir /var/log/kinit/
-touch /var/log/kinit/kinit.logs
+mkdir /var/log/kvoke/
+touch /var/log/kvoke/kvoke.logs
 clear
 mainMenu
