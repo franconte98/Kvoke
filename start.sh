@@ -72,7 +72,6 @@ function confirmCreate {
                 mainMenu
             fi
             ;;
-            ;;
         2)
             text_masters=""
             for (( c=1; c<=$count_masters; c++ ))
