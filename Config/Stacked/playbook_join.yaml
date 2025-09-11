@@ -20,7 +20,7 @@
 
     - name: Extract certificate key from output
       set_fact:
-        kubeadm_certificate_key: "{{ upload_certs.stdout | regex_search('(?mi)certificate key:\\s*(\\S+)', '\\1') }}"
+        kubeadm_certificate_key: "{{ (upload_certs.stdout | regex_search('(?mi)certificate key:\\s*(\\S+)', '\\1'))[0] }}"
       when: upload_certs.stdout is defined
 
     - name: Fail if we couldn't extract certificate key
