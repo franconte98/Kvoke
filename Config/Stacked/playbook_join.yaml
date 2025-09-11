@@ -20,16 +20,14 @@
         path: /etc/kubernetes/kubelet.conf
       register: kube_joined_status
 
-    - name: Get the CRI socket path
+    - name: Set the CRI Socket Path
       ansible.builtin.set_fact:
-        cri_socket: >
-          {% if cri == 'Docker' %}
-          unix:///var/run/cri-dockerd.sock
-          {% elif cri == 'Containerd' %}
-          unix:///run/containerd/containerd.sock
-          {% elif cri == 'CRI-O' %}
-          unix:///var/run/crio/crio.sock
-          {% endif %}
+        cri_socket: "{{ {
+          'Docker': 'unix:///var/run/cri-dockerd.sock',
+          'Containerd': 'unix:///run/containerd/containerd.sock',
+          'CRI-O': 'unix:///var/run/crio/crio.sock'
+        }[cri] }}"
+
 
     - name: Join the Master Nodes
       ansible.builtin.shell: "{{ hostvars[groups['masters'][0]]['join_command'] }} --cri-socket={{ cri_socket }} --control-plane"
