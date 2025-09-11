@@ -62,6 +62,16 @@ function confirmCreate {
             # --- Graphical Recap ---
             whiptail --title "Configuration Overview" \
                     --msgbox "$CONFIRM" 30 80
+            
+            # --- Final Confirm ---
+            if (whiptail --title "Final Confirmation" \
+                        --yesno "Do you confirm these settings to proceed with the installation?" 10 60); then
+                initSimple
+            else
+                clear
+                mainMenu
+            fi
+            ;;
             ;;
         2)
             text_masters=""
@@ -88,21 +98,21 @@ function confirmCreate {
             # --- Graphical Recap ---
             whiptail --title "Configuration Overview" \
                     --msgbox "$CONFIRM" 45 80
+            
+            # --- Final Confirm ---
+            if (whiptail --title "Final Confirmation" \
+                        --yesno "Do you confirm these settings to proceed with the installation?" 10 60); then
+                initStacked
+            else
+                clear
+                mainMenu
+            fi
             ;;
         *)
             clear
             echo -e "\nInvalid Option!\n"
             ;;
     esac
-
-    # --- Final Confirm ---
-    if (whiptail --title "Final Confirmation" \
-                --yesno "Do you confirm these settings to proceed with the installation?" 10 60); then
-        initSimple
-    else
-        clear
-        mainMenu
-    fi
 }
 
 # --- Main Menu, here everything start! ---
@@ -652,44 +662,6 @@ function initStacked {
     ### --- Initialization ---
 
     clear
-    
-    for (( c=1; c<=$count_masters; c++ ))
-    do
-        echo "${master_ips[$c]}"
-    done
-    echo ""
-    # Workers
-    echo "[workers]"
-    for (( c=1; c<=$count_workers; c++ ))
-    do
-        echo "${worker_ips[$c]}"
-    done
-    echo ""
-    # All IPs
-    echo "[all_vms:children]"
-    echo "masters"
-    echo "workers"
-    echo ""
-    # Credentials and Attributes
-    echo "[all_vms:vars]"
-    echo "ansible_user=$username"
-    echo "ansible_ssh_pass=$passwd"
-    echo "ansible_become_pass=$passwd"
-    echo "count_workers=$count_workers"
-    for (( c=1; c<=$count_workers; c++ ))
-    do
-        echo "worker$c=${worker_ips[$c]}"
-    done
-    echo "count_masters=$count_masters"
-    for (( c=1; c<=$count_masters; c++ ))
-    do
-        echo "master$c=${master_ips[$c]}"
-    done
-    echo "cri=$cri"
-    echo "username=$username"
-    echo "passwd=$passwd"
-    echo "vip_ip=$lb_ip"
-
     log "Creating K8S Cluster with STACKED ETCD Configuration"
 
     ### Install Tools on the HOST
