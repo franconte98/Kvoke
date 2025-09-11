@@ -39,7 +39,7 @@ network_interface=""
 ### Tools
 cri=""
 OUTPUT_FILE="hosts"
-OUTPUT_LOGS="/var/log/kinit/kinit.logs"
+OUTPUT_LOGS="/var/log/kvoke/kvoke.logs"
 
 
 ############################################################################################################################

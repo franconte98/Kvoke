@@ -1,19 +1,58 @@
 ---
-- hosts: masters
+- hosts: masters[0]
   become: true
   become_method: sudo
   tasks:
-    - name: Joining all the Master Nodes
-      ansible.builtin.command: "{{ JOIN_COMMAND_MASTER }}"
+    - name: Generate the join command
+      ansible.builtin.command: kubeadm token create --print-join-command
+      register: join_command_output
+
+    - name: Set the join command as a fact
+      ansible.builtin.set_fact:
+        join_command: "{{ join_command_output.stdout }}"
+
+- hosts: masters,workers
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Check if node is already joined
+      stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: kube_joined_status
+
+    - name: Get the CRI socket path
+      ansible.builtin.set_fact:
+        cri_socket: |
+          {% if cri == 'Docker' %}
+          unix:///var/run/cri-dockerd.sock
+          {% elif cri == 'Containerd' %}
+          unix:///run/containerd/containerd.sock
+          {% elif cri == 'CRI-O' %}
+          unix:///var/run/crio/crio.sock
+          {% endif %}
+
+    - name: Join the Master Nodes
+      ansible.builtin.shell: "{{ hostvars[groups['masters'][0]]['join_command'] }} --cri-socket {{ cri_socket }} --control-plane"
       when:
+        - inventory_hostname in groups['masters']
+        - inventory_hostname != groups['masters'][0]
         - ansible_distribution_file_variety == "Debian"
-        - ansible_host != master1
+        - not kube_joined_status.stat.exists
+      register: master_join_result
+
+    - name: Join the Worker Nodes
+      ansible.builtin.shell: "{{ hostvars[groups['masters'][0]]['join_command'] }} --cri-socket {{ cri_socket }}"
+      when:
+        - inventory_hostname in groups['workers']
+        - ansible_distribution_file_variety == "Debian"
+        - not kube_joined_status.stat.exists
+      register: worker_join_result
       
-- hosts: workers
-  become: true
-  become_method: sudo
-  tasks:
-    - name: Joining all the Worker Nodes
-      ansible.builtin.command: "{{ JOIN_COMMAND }}"
-      when: ansible_distribution_file_variety == "Debian"
+    - name: Show Join Result Masters
+      ansible.builtin.debug:
+        var: master_join_result
+
+    - name: Show Join Result Workers
+      ansible.builtin.debug:
+        var: worker_join_result
 ...

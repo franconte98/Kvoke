@@ -392,14 +392,14 @@ function initSimple {
     clear
     log "Creating K8S Cluster with SIMPLE Configuration"
 
-    ### Install Tools
+    ### Install Tools on the HOST
     log "Installing all the necessary Tools"
     sudo apt update -y;
     sudo apt install sshpass software-properties-common -y;
     sudo add-apt-repository --yes --update ppa:ansible/ansible;
     sudo apt install ansible -y;
 
-    ### Enabling Scripts (Bash)
+    ### Enabling Scripts (Bash) on the HOST
     chmod +x Config/init.sh Config/Simple/*
 
     ### Ansible Inventory creation
@@ -439,7 +439,6 @@ function initSimple {
 
     ### Creating the Cluster
     log "Creating the Cluster and Installing all the additional tools for the Cluster"
-    #./Config/Simple/masterinit.sh $ip_master $cri
     ansible-playbook ./Config/Simple/playbook_create.yaml;
     if [ $? -ne 0 ]; then
         echo "${NC}${RED}ERROR:${NC} Something went wrong initiating the cluster with Kubeadm! ${NC}${RED}ABORT.${NC}"
@@ -447,25 +446,7 @@ function initSimple {
         abortExec
     fi
 
-    ### --- Join + Setup ---
-
-    ### Join Nodes
-    #partial_join_command="$(ansible-playbook ./Config/Simple/playbook_print_join.yaml | grep -Eo 'kubeadm join.*')";
-    #case $cri in
-    #    "Docker")
-    #        JOIN_COMMAND="$partial_join_command --cri-socket unix:///var/run/cri-dockerd.sock";
-    #        ;;
-    #    "Containerd")
-    #        JOIN_COMMAND="$partial_join_command --cri-socket unix:///run/containerd/containerd.sock";
-    #        ;;
-    #    "CRI-O")
-    #        JOIN_COMMAND="$partial_join_command --cri-socket unix:///var/run/crio/crio.sock";
-    #        ;;
-    #    *)
-    #        clear
-    #        echo -e "\nInvalid Option!\n"
-    #        ;;
-    #esac
+    ### --- Join + Setup LB ---
 
     ### Playbook for Joining
     log "Joining all the Nodes"
@@ -673,7 +654,7 @@ function initStacked {
     clear
     log "Creating K8S Cluster with STACKED ETCD Configuration"
 
-    ### Install Tools
+    ### Install Tools on the HOST
     log "Installing all the necessary Tools"
     sudo apt update;
     sudo apt install sshpass -y;
@@ -681,7 +662,7 @@ function initStacked {
     sudo add-apt-repository --yes --update ppa:ansible/ansible;
     sudo apt install ansible -y;
 
-    ### Enabling Scripts (Bash)
+    ### Enabling Scripts (Bash) on the HOST
     chmod +x Config/init.sh Config/Stacked/*
 
     ### Inventory
@@ -717,16 +698,14 @@ function initStacked {
         abortExec
     fi
 
-    ### Setup the Network for Load Balancing
-    network_interface="$(ip a | grep ${master_ips[1]} | awk '{ print $NF }')";
-    echo $network_interface;
-    ip add add $lb_ip/32 dev $network_interface
+    ### Setup the Network for KeepAliveD
+    network_interface="$(ansible-playbook ./Config/Stacked/playbook_set_net.yaml | grep 'MSG:' | awk '{print $2}')";
 
     ### --- Creation ---
 
     ### Creating the Cluster
     log "Creating the cluster with Kubeadm"
-    ./Config/Stacked/stackedinit.sh ${master_ips[1]} $cri $lb_ip $username
+    ansible-playbook ./Config/Stacked/playbook_create.yaml;
     if [ $? -ne 0 ]; then
         echo "${NC}${RED}ERROR:${NC} Something went wrong initiating the cluster with Kubeadm! ${NC}${RED}ABORT.${NC}"
         log "ERROR: Something went wrong initiating the cluster with Kubeadm!"
@@ -737,32 +716,16 @@ function initStacked {
 
     ### Load Certificates
     log "Loading the Certificates to all the Master Nodes"
-    loadCerts
-
-    ### Join Nodes
-    partial_join_command="$(kubeadm token create --print-join-command)";
-    case $cri in
-        "Docker")
-            JOIN_COMMAND_MASTER="$partial_join_command --cri-socket unix:///var/run/cri-dockerd.sock --control-plane";
-            JOIN_COMMAND="$partial_join_command --cri-socket unix:///var/run/cri-dockerd.sock";
-            ;;
-        "Containerd")
-            JOIN_COMMAND_MASTER="$partial_join_command --cri-socket unix:///run/containerd/containerd.sock --control-plane";
-            JOIN_COMMAND="$partial_join_command --cri-socket unix:///run/containerd/containerd.sock";
-            ;;
-        "CRI-O")
-            JOIN_COMMAND_MASTER="$partial_join_command --cri-socket unix:///var/run/crio/crio.sock --control-plane";
-            JOIN_COMMAND="$partial_join_command --cri-socket unix:///var/run/crio/crio.sock";
-            ;;
-        *)
-            clear
-            echo -e "\nInvalid Option!\n"
-            ;;
-    esac
+    ansible-playbook ./Config/Stacked/playbook-loadcerts.yaml;
+    if [ $? -ne 0 ]; then
+        echo "${NC}${RED}ERROR:${NC} Something went wrong transfering the certs to the other masters! ${NC}${RED}ABORT.${NC}"
+        log "ERROR: Something went wrong transfering the certs to the other masters!"
+        abortExec
+    fi
 
     ### Playbook for Joining
     log "Joining all the Nodes in the Cluster"
-    ansible-playbook ./Config/Stacked/playbook_join.yaml -e "JOIN_COMMAND='$JOIN_COMMAND' JOIN_COMMAND_MASTER='$JOIN_COMMAND_MASTER'";
+    ansible-playbook ./Config/Stacked/playbook_join.yaml;
     if [ $? -ne 0 ]; then
         echo "${NC}${RED}ERROR:${NC} Something went wrong Joining the Nodes in the Cluster! ${NC}${RED}ABORT.${NC}"
         log "ERROR: Something went wrong Joining the Nodes in the Cluster!"
@@ -770,56 +733,7 @@ function initStacked {
     fi
 
     # --- KubeConfig Setup ---
-    for (( c=2; c<=$count_masters; c++ ))
-    do
-        sshpass -p $passwd ssh -o StrictHostKeyChecking=no $username@${master_ips[$c]} "echo $passwd | sudo -S mkdir -p $HOME/.kube"
-        sshpass -p $passwd ssh -o StrictHostKeyChecking=no $username@${master_ips[$c]} "echo $passwd | sudo -S cp -i /etc/kubernetes/admin.conf $HOME/.kube/config"
-        sshpass -p $passwd ssh -o StrictHostKeyChecking=no $username@${master_ips[$c]} "echo $passwd | sudo -S chown $(id -u):$(id -g) $HOME/.kube/config"
-    done
-
-    # --- KeepAliveD Installation ---
-
-    ### IPAddressPool for MetalLB
-    KEEPALIVED_CONFIGURATION_MASTER="
-global_defs {
-    vrrp_version 2
-    vrrp_garp_master_delay 1
-    vrrp_garp_master_refresh 60
-    script_user root
-    enable_script_security
-}
-
-vrrp_script chk_script {
-    script \"/usr/bin/curl --silent --max-time 30 --insecure https://127.0.0.1:6443/readyz -o /dev/null\"
-    interval 20 # check every 3 second
-    fall 3 # require 2 failures for OK
-    rise 2 # require 2 successes for OK
-}
-
-vrrp_instance lb-vips {
-    state BACKUP
-    interface ${network_interface}
-    virtual_router_id 206
-    priority 100
-    advert_int 1
-    nopreempt # Prevent fail-back
-    track_script {
-        chk_script
-    }
-    authentication {
-        auth_type PASS
-        auth_pass password
-    }
-    virtual_ipaddress {
-        ${lb_ip}/32 dev ${network_interface}
-    }
-}
-"
-
-    cat <<EOF > keepalived.conf
-$KEEPALIVED_CONFIGURATION_MASTER
-EOF
-    mv keepalived.conf Config/Stacked/
+    ansible-playbook ./Config/Stacked/playbook_kubeconfig.yaml;
 
     ### Configure KeepAliveD on Master Nodes
     log "Installing and Configuring KeepAliveD"
@@ -834,38 +748,21 @@ EOF
 
     # --- Tools Configuration ---
     log "Installing all additional Tools for the Cluster"
-    ./Config/Stacked/keepmaster.sh $cri
+    ansible-playbook ./Config/Stacked/playbook_tools.yaml;
+    if [ $? -ne 0 ]; then
+        echo "${NC}${RED}ERROR:${NC} There were some problems installing the tools! ${NC}${RED}ABORT.${NC}"
+        log "ERROR: There were some problems installing the tools!"
+        abortExec
+    fi
 
     ### IPAddressPool for MetalLB
-    cat <<-EOF | kubectl apply -f -
-apiVersion: metallb.io/v1beta1
-kind: IPAddressPool
-metadata:
-    name: first-pool
-    namespace: metallb-system
-spec:
-    addresses:
-    - $show_range
-    autoAssign: true
----
-apiVersion: metallb.io/v1beta1
-kind: L2Advertisement
-metadata:
-    name: l2
-    namespace: metallb-system
-spec:
-    ipAddressPools:
-    - first-pool
----
-apiVersion: metallb.io/v1beta1
-kind: BGPAdvertisement
-metadata:
-    name: example
-    namespace: metallb-system
-spec:
-    ipAddressPools:
-    - first-pool
-EOF
+    log "Adding the Load Balancer Range."
+    ansible-playbook ./Config/Stacked/playbook_lb.yaml;
+    if [ $? -ne 0 ]; then
+        echo "${NC}${RED}ERROR:${NC} There were some problems adding the Load Balancer Range! ${NC}${RED}ABORT.${NC}"
+        log "ERROR: There were some problems adding the Load Balancer Range!"
+        abortExec
+    fi
 
     ### Final Message
     log "Installation and Configuration are done!"

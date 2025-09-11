@@ -1,0 +1,20 @@
+---
+- hosts: masters[0]
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Find the network interface for the primary IP
+      ansible.builtin.shell: |
+        ip a | grep {{ masters[0] }} | awk '{ print $NF }'
+      register: interface_output
+      changed_when: false
+
+    - name: Add the load balancer IP to the found interface
+      ansible.builtin.shell: |
+        ip add add {{ vip_ip }}/32 dev {{ interface_output.stdout }}
+      changed_when: true
+
+    - name: Print the network interface name
+      ansible.builtin.debug:
+        msg: "{{ interface_output.stdout }}"
+...
