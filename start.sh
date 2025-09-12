@@ -473,7 +473,7 @@ function initSimple {
     ### End Of Process
     log "Installation and Configuration are done!"
     echo -e "\n${NC}${GREEN}#######################################################################################${NC}\n"
-    echo -e "\n Installation and Configuration are done! Check your cluster using the 'k9s' command.\n"
+    echo -e "\n Installation and Configuration are done! Check your cluster using the 'k9s' command in the Master Node.\n"
     echo -e "\n${NC}${GREEN}#######################################################################################${NC}\n"
 }
 
@@ -626,7 +626,7 @@ function menuStacked {
     confirmCreate
 }
 
-# --- Initialization of a Stacked ETCD HA Cluster [~ 10 minutes] ---
+# --- Initialization of a Stacked ETCD HA Cluster [~ 15 minutes] ---
 function initStacked {
 
     ### --- Initialization ---
@@ -730,8 +730,6 @@ function initStacked {
         abortExec
     fi
 
-    #ip add del $lb_ip/32 dev $network_interface; 
-
     # --- Tools Configuration ---
     log "Installing all additional Tools for the Cluster"
     ansible-playbook ./Config/Stacked/playbook_tools.yaml;
@@ -753,7 +751,7 @@ function initStacked {
     ### Final Message
     log "Installation and Configuration are done!"
     echo -e "\n${NC}${GREEN}#######################################################################################${NC}\n"
-    echo -e "\n Installation and Configuration are done! Check your cluster using the 'k9s' command.\n"
+    echo -e "\n Installation and Configuration are done! Check your cluster using the 'k9s' command in the VIP.\n"
     echo -e "\n${NC}${GREEN}#######################################################################################${NC}\n"
 }
 

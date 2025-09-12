@@ -10,7 +10,7 @@
         mode: '0755'
       when: ansible_distribution_file_variety == "Debian"
     
-    - name: Create the Cluster starting from the Master Node
+    - name: Installing the additional tools
       ansible.builtin.command: /tmp/keepmaster.sh {{ cri }}
       when: ansible_distribution_file_variety == "Debian"
       register: create_result
