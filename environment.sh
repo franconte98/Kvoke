@@ -56,7 +56,7 @@ It includes three official node-joining configurations, adaptable to your availa
 VMs REQUIREMENTS:
 - Each VM requires a unique IP address.
 - All VMs must reside on the same network (and must be reachable for each other).
-- At least 2vCPU, 2GB of RAM and 25GB of storage for each VM.
+- At least 2vCPU, 4GB of RAM and 25GB of storage for each VM.
 - All the VMs got to have the same sudoer user (With the same username and password).
 EOF
 )
@@ -73,7 +73,7 @@ MINIMUM REQUIREMENTS:
 VMs REQUIREMENTS:
 - Each VM requires a unique IP address.
 - All VMs must reside on the same network (and must be reachable for each other).
-- At least 2vCPU, 2GB of RAM and 25GB of storage for each VM.
+- At least 2vCPU, 4GB of RAM and 25GB of storage for each VM.
 - All the VMs got to have the same sudoer user (With the same username and password).
 EOF
 )
@@ -91,7 +91,7 @@ MINIMUM REQUIREMENTS:
 VMs REQUIREMENTS:
 - Each VM requires a unique IP address.
 - All VMs must reside on the same network (and must be reachable for each other).
-- At least 2vCPU, 2GB of RAM and 25GB of storage for each VM.
+- At least 2vCPU, 4GB of RAM and 25GB of storage for each VM.
 - All the VMs got to have the same sudoer user (With the same username and password).
 EOF
 )
