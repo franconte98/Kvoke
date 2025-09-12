@@ -17,6 +17,16 @@
   become: true
   become_method: sudo
   tasks:
+    - name: Wait for dpkg lock release
+      shell: |
+        while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+          sleep 5
+        done
+      retries: 30
+      delay: 10
+      register: wait_dpkg
+      until: wait_dpkg.rc == 0
+
     - name: Ensure Keepalived is installed
       ansible.builtin.apt:
         name: keepalived

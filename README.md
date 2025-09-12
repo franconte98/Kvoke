@@ -65,7 +65,7 @@ This project requires a pre-configured infrastructure of virtual machines that a
 
 - <b>CPU:</b> 2 vCPUs
 
-- <b>RAM:</b> 2 GB
+- <b>RAM:</b> 4 GB
 
 - <b>Storage:</b> 25 GB of available disk space
 
@@ -104,6 +104,8 @@ For optimal performance and minimal latency, it's recommended that you run Kvoke
 - <b>To Create a Cluster:</b> Run Kvoke from a machine on the same network as your virtual machines. The script will guide you through the process of setting up your desired cluster topology.
 
 - <b>To Join a Node:</b> Execute Kvoke directly on the node you wish to add to an existing cluster. Follow the on-screen prompts and select the "Join" option when prompted.
+
+Currently, `Kvoke` supports only Debian-based Linux distributions (such as Debian and Ubuntu), but support for additional distributions will be available soon.
 
 ## About Kvoke
 
