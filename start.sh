@@ -307,7 +307,7 @@ function initJoinWorker {
     fi
 
     ### Playbook w// init.sh
-    log "Initiating all the Nodes"
+    log "Initiating the Node to Join"
     ansible-playbook ./Config/Join/playbook_init.yaml;
     if [ $? -ne 0 ]; then
         echo "${NC}${RED}ERROR:${NC} There were some problems and the Initiation did not succeed. ${NC}${RED}ABORT.${NC}"
@@ -325,9 +325,9 @@ function initJoinWorker {
     fi
 
     ### Final Message
-    log "Installation and Configuration are done!"
+    log "The node has been successfully attached to the cluster!"
     echo -e "\n${NC}${GREEN}#######################################################################################${NC}\n"
-    echo -e "\n Installation and Configuration are done! Check your cluster using the 'k9s' command in the VIP.\n"
+    echo -e "\n The node has been successfully attached to the cluster!\n"
     echo -e "\n${NC}${GREEN}#######################################################################################${NC}\n"
 }
 
