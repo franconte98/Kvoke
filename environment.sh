@@ -20,6 +20,7 @@ NC='\033[0m'
 
 ### Functional Variables
 CHOICE=""
+CHOICE_JOIN=""
 CONF_CHOICE=""
 declare -A worker_ips
 declare -A master_ips
@@ -35,6 +36,7 @@ lb_cidr=""
 show_range=""
 lb_ip=""
 network_interface=""
+ip_to_join=""
 
 ### Tools
 cri=""
@@ -58,6 +60,19 @@ VMs REQUIREMENTS:
 - All VMs must reside on the same network (and must be reachable for each other).
 - At least 2vCPU, 4GB of RAM and 25GB of storage for each VM.
 - All the VMs got to have the same sudoer user (With the same username and password).
+EOF
+)
+
+WELCOME_JOIN_1=$(cat <<'EOF'
+This script prepares and joins a worker node to a Kvoke cluster. 
+It automates the entire process, including the installation of necessary tools, 
+the configuration of the container runtime, and the final joining of the node to the cluster.
+
+VM REQUIREMENTS:
+- The VM requires a unique IP address.
+- All VMs must reside on the same network (and must be reachable for each other), including the node to Join.
+- The node needs at least 2vCPU, 4GB of RAM and 25GB of storage.
+- All the VMs got to have the same sudoer user (With the same username and password), including the node to Join.
 EOF
 )
 
@@ -141,6 +156,26 @@ Container Runtime used: $cri\n
 Credentials SSH sudoer\n
 Username: $username
 Password: $passwd
+EOF
+)
+            ;;
+        *)
+            clear
+            echo -e "\nInvalid Option!\n"
+            ;;
+    esac
+}
+
+function confirm_page_join {
+    case $CHOICE_JOIN in
+        1)
+            CONFIRM=$(cat <<EOF
+Type of Node that is joining: Worker\n
+IP / VIP Node: $ip_master\n
+Container Runtime used: $this_cri\n
+Credentials SSH sudoer\n
+Username: $this_username
+Password: $this_password
 EOF
 )
             ;;

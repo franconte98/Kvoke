@@ -114,6 +114,36 @@ function confirmCreate {
     esac
 }
 
+# --- Confirmation Menu Function Join ---
+function confirmJoin {
+
+    # --- Filter the type of configuration ---
+    case $CHOICE_JOIN in
+        1)
+            # --- Call to the environment function ---
+            confirm_page_join
+
+            # --- Graphical Recap ---
+            whiptail --title "Configuration Overview" \
+                    --msgbox "$CONFIRM" 30 80
+            
+            # --- Final Confirm ---
+            if (whiptail --title "Final Confirmation" \
+                        --yesno "Do you confirm these settings to proceed with the installation?" 10 60); then
+                initJoinWorker
+            else
+                clear
+                mainMenu
+            fi
+            ;;
+        *)
+            clear
+            echo -e "\nInvalid Option!\n"
+            ;;
+    esac
+
+}
+
 # --- Main Menu, here everything start! ---
 function mainMenu {
 
@@ -144,101 +174,166 @@ function mainMenu {
 }
 
 ####################
-##  Join Cluster  ## HAS TO BE IMPLEMENTED!!
+##  Join Cluster  ##
 ####################
+
+# --- Create Inventory Function ---
+function inventoryJoin {
+    
+    rm -rf $OUTPUT_FILE;
+    # Master
+    echo "[master]" >> "$OUTPUT_FILE"
+    echo "$ip_master" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+
+    # Node To Join
+    echo "[join]" >> "$OUTPUT_FILE"
+    echo "$ip_to_join" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+
+    # All IPs
+    echo "[all_vms:children]" >> "$OUTPUT_FILE"
+    echo "master" >> "$OUTPUT_FILE"
+    echo "join" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+
+    # Credentials and Attributes
+    echo "[all_vms:vars]" >> "$OUTPUT_FILE"
+    echo "ansible_user=$username" >> "$OUTPUT_FILE"
+    echo "ansible_ssh_pass=$passwd" >> "$OUTPUT_FILE"
+    echo "ansible_become_pass=$passwd" >> "$OUTPUT_FILE"
+    echo "master_ip=$ip_master" >> "$OUTPUT_FILE"
+    echo "ip_to_join=$ip_to_join" >> "$OUTPUT_FILE"
+    echo "cri=$cri" >> "$OUTPUT_FILE"
+    echo "username=$username" >> "$OUTPUT_FILE"
+    echo "passwd=$passwd" >> "$OUTPUT_FILE"
+
+}
 
 # --- Join Cluster Menu ---
 # mainMenu -> joinMenu
 function joinMenu {
 
     # --- Menu ---
-
-    whiptail --title "Join Node" \
-            --msgbox "Once you initialized a k8s cluster, to join a node to the cluster" $(stty size)
-    
-    this_ip=$(whiptail --title "Enter the IP of the Node" \
-            --inputbox "Type the IP of the node you wanna Join to your Cluster." $(stty size) \
-            "192.168.100.10" \
-            3>&1 1>&2 2>&3)
-    
-    this_cri=$(whiptail --title "Container Runtime Interface" \
-        --menu "Select which CNI you wanna use for that node" $(stty size) 3 \
-        "Docker" "The most widely adopted and well-documented container runtime, it allows for simple container management." \
-        "Containerd" "Highly adopted, minimal container runtime." \
-        "CRI-O" "A lightweight, Kubernetes-specific container runtime." \
-        3>&1 1>&2 2>&3)
-    
-    this_username=$(whiptail --title "Username for SSH" \
-        --inputbox "Type the username for the SSH connection with the VM:" $(stty size) \
-        "username" \
+    CHOICE_JOIN=$(whiptail --title "Join Node to a Cluster" \
+        --menu "Choose which type of Node you wanna Join to the Cluster." 20 70 2 \
+        "1" "Join a Worker Node" \
+        "2" "Join a Master Node" \
         3>&1 1>&2 2>&3)
 
-    this_password=$(whiptail --title "Password for SSH" \
-        --passwordbox "Type the password for the SSH connection with the VM:" $(stty size) "" \
-        3>&1 1>&2 2>&3)
-
-    confirmMenuJoin
-}
-
-# --- Confirmation Menu Function Join ---
-# joinMenu -> confirmMenuJoin
-function confirmMenuJoin {
-
-    ### RECAP
-    whiptail --title "Configuration Overview" \
-            --msgbox "IP Node: $ip_master\n
-    Role: Worker\n
-    Container Runtime: $this_cri\n
-    Credentials SSH non-ROOT:
-    Username: $this_username
-    Password: $this_password
-    " $(stty size)
-
-    # --- 6. Confirm Choice ---
-    if (whiptail --title "Final Confirmation" \
-                --yesno "Do you confirm these settings to proceed with the installation?" $(stty size)); then
-        initJoin
-        clear
-    else
-        clear
-        mainMenu
-    fi
-
-}
-
-# --- Initialization of the Join Cluster ---
-# confirmMenuJoin -> initJoin
-function initJoin {
-    
-    ### Install Tool for Automated SSH
-    sudo apt install sshpass -y;
-
-    ### init.sh
-    echo -e "\n Node Initialization with IP $this_ip\n"
-    partial_join_command="$(kubeadm token create --print-join-command)";
-    case $this_cri in
-        "Docker")
-            JOIN_COMMAND="$partial_join_command --cri-socket unix:///var/run/cri-dockerd.sock";
+    # --- Routing w// switch ---
+    case $CHOICE_JOIN in
+        1)
+            JoinWorkerMenu
             ;;
-        "Containerd")
-            JOIN_COMMAND="$partial_join_command --cri-socket unix:///run/containerd/containerd.sock";
-            ;;
-        "CRI-O")
-            JOIN_COMMAND="$partial_join_command --cri-socket unix:///var/run/crio/crio.sock";
+        2)
+            JoinMasterMenu
             ;;
         *)
             clear
             echo -e "\nInvalid Option!\n"
             ;;
     esac
-    sshpass -p $this_password scp -o StrictHostKeyChecking=no init.sh $this_username@$this_ip:init.sh
-    sshpass -p $this_password ssh -o StrictHostKeyChecking=no $this_username@$this_ip "echo $this_password | sudo -S ./init.sh \"$this_ip\" \"$this_cri\""
-    sshpass -p $this_password ssh -o StrictHostKeyChecking=no $this_username@$this_ip "echo $this_password | sudo -S bash -c \"$JOIN_COMMAND\""
+}
+
+# --- Menu to Join a Worker Node ---
+function JoinWorkerMenu {
+
+    whiptail --title "Joining a Worker Node to a Kvoke Cluster" \
+        --msgbox "$WELCOME_JOIN_1" 30 100
+
+    ### Master Node's IP
+    ip_master=$(whiptail --title "Select the Master Node's IP or VIP" \
+        --inputbox "Type the IP of either the Primary Node or the associated VIP." 10 60 \
+        "192.168.0.100" \
+        3>&1 1>&2 2>&3)
+    
+    ### Master Node's IP
+    ip_to_join=$(whiptail --title "Select the IP of the Node to Join" \
+        --inputbox "Type the IP of the Node to Join as a Worker." 10 60 \
+        "192.168.0.100" \
+        3>&1 1>&2 2>&3)
+
+    ### SSH Connection Username
+    username=$(whiptail --title "Select the Username for the SSH Connection" \
+        --inputbox "$USERNAME_MSG" 15 60 \
+        "username" \
+        3>&1 1>&2 2>&3)
+
+    ### SSH Connection Passwords
+    passwd=$(whiptail --title "Select the Password for the SSH Connection" \
+        --passwordbox "$PASSWORD_MSG" 15 60 "" \
+        3>&1 1>&2 2>&3)
+
+    ## CRI Selection
+    cri=$(whiptail --title "Select the Container Runtime Interface (CRI)" \
+        --menu "Select which CRI you wanna use for each VM in the cluster:" 10 150 3 \
+        "Docker" "The most widely adopted and well-documented container runtime, it allows for simple container management." \
+        "Containerd" "Highly adopted, but minimal container runtime." \
+        "CRI-O" "A lightweight, Kubernetes-specific container runtime." \
+        3>&1 1>&2 2>&3)
+
+    confirmJoin;
+}
+
+# --- Initialization of the Join Cluster ---
+function initJoinWorker {
+    
+    ### --- Initialization ---
 
     clear
+    log "Joining a WORKER Node to a Kvoke Cluster"
+
+    ### Install Tools on the HOST
+    log "Installing all the necessary Tools"
+    sudo apt update -y;
+    sudo apt install sshpass software-properties-common -y;
+    sudo add-apt-repository --yes --update ppa:ansible/ansible;
+    sudo apt install ansible -y;
+
+    ### Enabling Scripts (Bash) on the HOST
+    chmod +x Config/init.sh Config/Join/*
+
+    ### Ansible Inventory creation
+    inventoryJoin
+
+    ### Ping Test
+    log "Testing the Connectivity to all the Nodes"
+    ansible all_vms -m ping;
+    if [ $? -ne 0 ]; then
+        echo "${NC}${RED}ERROR:${NC} Some VMs are not reachable by Ansible! ${NC}${RED}ABORT.${NC}"
+        log "ERROR: Some VMs are not reachable by Ansible!"
+        abortExec
+    fi
+
+    ### Playbook w// init.sh
+    log "Initiating all the Nodes"
+    ansible-playbook ./Config/Join/playbook_init.yaml;
+    if [ $? -ne 0 ]; then
+        echo "${NC}${RED}ERROR:${NC} There were some problems and the Initiation did not succeed. ${NC}${RED}ABORT.${NC}"
+        log "ERROR: There were some problems and the Initiation did not succeed."
+        abortExec
+    fi
+
+    ### Playbook for Joining
+    log "Joining the Node"
+    ansible-playbook ./Config/Join/playbook_join.yaml;
+    if [ $? -ne 0 ]; then
+        echo "${NC}${RED}ERROR:${NC} There were some problems and the Worker Nodes did not join. ${NC}${RED}ABORT.${NC}"
+        log "ERROR: There were some problems and the Worker Nodes did not join."
+        abortExec
+    fi
+
+    ### Final Message
+    log "Installation and Configuration are done!"
     echo -e "\n${NC}${GREEN}#######################################################################################${NC}\n"
-    echo -e "\n Join of the node should be successful! Check your cluster using the 'k9s' command.\n"
+    echo -e "\n Installation and Configuration are done! Check your cluster using the 'k9s' command in the VIP.\n"
     echo -e "\n${NC}${GREEN}#######################################################################################${NC}\n"
+}
+
+# --- Menu to Join a Master Node ---
+function JoinMasterMenu {
+    confirmJoin;
 }
 
 ######################
@@ -440,7 +535,7 @@ function initSimple {
     ansible-playbook ./Config/Simple/playbook_init.yaml;
     if [ $? -ne 0 ]; then
         echo "${NC}${RED}ERROR:${NC} There were some problems and the Initiation did not succeed. ${NC}${RED}ABORT.${NC}"
-        log "ERROR: Some VMs are not reachable by Ansible!"
+        log "ERROR: There were some problems and the Initiation did not succeed."
         abortExec
     fi
 
@@ -462,7 +557,7 @@ function initSimple {
     ansible-playbook ./Config/Simple/playbook_join.yaml;
     if [ $? -ne 0 ]; then
         echo "${NC}${RED}ERROR:${NC} There were some problems and the Worker Nodes did not join. ${NC}${RED}ABORT.${NC}"
-        log "ERROR: Some VMs are not reachable by Ansible!"
+        log "ERROR: There were some problems and the Worker Nodes did not join."
         abortExec
     fi
 
@@ -726,7 +821,7 @@ function initStacked {
     ansible-playbook ./Config/Stacked/playbook_vip.yaml;
     if [ $? -ne 0 ]; then
         echo "${NC}${RED}ERROR:${NC} There were some problems and the KeepAliveD was NOT proprely configured ${NC}${RED}ABORT.${NC}"
-        log "ERROR: Something went wrong Joining the Nodes in the Cluster!"
+        log "ERROR: There were some problems and the KeepAliveD was NOT proprely configured"
         abortExec
     fi
 
