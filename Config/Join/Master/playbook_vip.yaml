@@ -1,0 +1,89 @@
+---
+- hosts: master[0]
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Find the network interface for the VIP
+      ansible.builtin.shell: |
+        ip a | grep {{ ansible_host }} | awk '{ print $NF }'
+      register: interface_output
+      changed_when: false
+
+    - name: Set the network interface name as a fact
+      ansible.builtin.set_fact:
+        network_interface: "{{ interface_output.stdout }}"
+
+- hosts: join[0]
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Wait for dpkg lock release
+      shell: |
+        while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+          sleep 5
+        done
+      retries: 30
+      delay: 10
+      register: wait_dpkg
+      until: wait_dpkg.rc == 0
+
+    - name: Ensure Keepalived is installed
+      ansible.builtin.apt:
+        name: keepalived
+        state: present
+        update_cache: yes # Update apt cache before installing
+
+    - name: Create keepalived.conf file
+      ansible.builtin.copy:
+        content: |
+          global_defs {
+              vrrp_version 2
+              vrrp_garp_master_delay 1
+              vrrp_garp_master_refresh 60
+              script_user root
+              enable_script_security
+          }
+
+          vrrp_script chk_script {
+              script "/usr/bin/curl --silent --max-time 30 --insecure https://127.0.0.1:6443/readyz -o /dev/null"
+              interval 20 # check every 3 second
+              fall 3 # require 2 failures for OK
+              rise 2 # require 2 successes for OK
+          }
+
+          vrrp_instance lb-vips {
+              state BACKUP
+              interface {{ hostvars[groups['masters'][0]]['network_interface'] }}
+              virtual_router_id 206
+              priority 100
+              advert_int 1
+              nopreempt # Prevent fail-back
+              track_script {
+                  chk_script
+              }
+              authentication {
+                  auth_type PASS
+                  auth_pass password
+              }
+              virtual_ipaddress {
+                  {{ vip_ip }}/32 dev {{ hostvars[groups['masters'][0]]['network_interface'] }}
+              }
+          }
+        dest: /etc/keepalived/keepalived.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart Keepalived Service
+
+    - name: Ensure Keepalived service is running and enabled
+      ansible.builtin.service:
+        name: keepalived
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: Restart Keepalived Service
+      ansible.builtin.service:
+        name: keepalived
+        state: restarted
+...

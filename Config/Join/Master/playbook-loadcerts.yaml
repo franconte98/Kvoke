@@ -1,0 +1,52 @@
+---
+- hosts: master[0]
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Fetch certificates to local temporary directory
+      ansible.builtin.fetch:
+        src: "{{ item }}"
+        dest: "/tmp/fetched_certs/"
+        flat: yes
+      loop:
+        - /etc/kubernetes/pki/ca.crt
+        - /etc/kubernetes/pki/ca.key
+        - /etc/kubernetes/pki/etcd/ca.crt
+        - /etc/kubernetes/pki/etcd/ca.key
+        - /etc/kubernetes/pki/front-proxy-ca.crt
+        - /etc/kubernetes/pki/front-proxy-ca.key
+        - /etc/kubernetes/pki/sa.pub
+        - /etc/kubernetes/pki/sa.key
+
+- hosts: join[0]
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Ensure Kubernetes PKI directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+      loop:
+        - /etc/kubernetes/pki
+        - /etc/kubernetes/pki/etcd
+
+    - name: Copy fetched certificates to secondary masters
+      ansible.builtin.copy:
+        src: "/tmp/fetched_certs/{{ item.src | basename }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: "{{ item.mode }}"
+      loop:
+        - { src: 'ca.crt', dest: '/etc/kubernetes/pki/ca.crt', mode: '0644' }
+        - { src: 'ca.key', dest: '/etc/kubernetes/pki/ca.key', mode: '0600' }
+        - { src: 'etcd/ca.crt', dest: '/etc/kubernetes/pki/etcd/ca.crt', mode: '0644' }
+        - { src: 'etcd/ca.key', dest: '/etc/kubernetes/pki/etcd/ca.key', mode: '0600' }
+        - { src: 'front-proxy-ca.crt', dest: '/etc/kubernetes/pki/front-proxy-ca.crt', mode: '0644' }
+        - { src: 'front-proxy-ca.key', dest: '/etc/kubernetes/pki/front-proxy-ca.key', mode: '0600' }
+        - { src: 'sa.pub', dest: '/etc/kubernetes/pki/sa.pub', mode: '0644' }
+        - { src: 'sa.key', dest: '/etc/kubernetes/pki/sa.key', mode: '0600' }
+...
