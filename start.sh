@@ -136,6 +136,23 @@ function confirmJoin {
                 mainMenu
             fi
             ;;
+        2)
+            # --- Call to the environment function ---
+            confirm_page_join
+
+            # --- Graphical Recap ---
+            whiptail --title "Configuration Overview" \
+                    --msgbox "$CONFIRM" 30 80
+            
+            # --- Final Confirm ---
+            if (whiptail --title "Final Confirmation" \
+                        --yesno "Do you confirm these settings to proceed with the installation?" 10 60); then
+                initJoinMaster
+            else
+                clear
+                mainMenu
+            fi
+            ;;
         *)
             clear
             echo -e "\nInvalid Option!\n"
@@ -292,7 +309,7 @@ function initJoinWorker {
     sudo apt install ansible -y;
 
     ### Enabling Scripts (Bash) on the HOST
-    chmod +x Config/init.sh Config/Join/*
+    chmod +x Config/init.sh Config/Join/Worker/*
 
     ### Ansible Inventory creation
     inventoryJoin
@@ -308,7 +325,7 @@ function initJoinWorker {
 
     ### Playbook w// init.sh
     log "Initiating the Node to Join"
-    ansible-playbook ./Config/Join/playbook_init.yaml;
+    ansible-playbook ./Config/Join/Worker/playbook_init.yaml;
     if [ $? -ne 0 ]; then
         echo "${NC}${RED}ERROR:${NC} There were some problems and the Initiation did not succeed. ${NC}${RED}ABORT.${NC}"
         log "ERROR: There were some problems and the Initiation did not succeed."
@@ -317,7 +334,7 @@ function initJoinWorker {
 
     ### Playbook for Joining
     log "Joining the Node"
-    ansible-playbook ./Config/Join/playbook_join.yaml;
+    ansible-playbook ./Config/Join/Worker/playbook_join.yaml;
     if [ $? -ne 0 ]; then
         echo "${NC}${RED}ERROR:${NC} There were some problems and the Worker Nodes did not join. ${NC}${RED}ABORT.${NC}"
         log "ERROR: There were some problems and the Worker Nodes did not join."
@@ -333,7 +350,133 @@ function initJoinWorker {
 
 # --- Menu to Join a Master Node ---
 function JoinMasterMenu {
+
+    whiptail --title "Joining a Master Node to a Kvoke Cluster" \
+        --msgbox "$WELCOME_JOIN_1" 30 100
+
+    ### Master Node's IP
+    ip_master=$(whiptail --title "Select the VIP" \
+        --inputbox "Type the VIP of the Cluster to Join." 10 60 \
+        "192.168.0.100" \
+        3>&1 1>&2 2>&3)
+    
+    ### Master Node's IP
+    ip_to_join=$(whiptail --title "Select the IP of the Node to Join" \
+        --inputbox "Type the IP of the Node to Join as a Master." 10 60 \
+        "192.168.0.100" \
+        3>&1 1>&2 2>&3)
+
+    ### SSH Connection Username
+    username=$(whiptail --title "Select the Username for the SSH Connection" \
+        --inputbox "$USERNAME_MSG" 15 60 \
+        "username" \
+        3>&1 1>&2 2>&3)
+
+    ### SSH Connection Passwords
+    passwd=$(whiptail --title "Select the Password for the SSH Connection" \
+        --passwordbox "$PASSWORD_MSG" 15 60 "" \
+        3>&1 1>&2 2>&3)
+
+    ## CRI Selection
+    cri=$(whiptail --title "Select the Container Runtime Interface (CRI)" \
+        --menu "Select which CRI you wanna use for each VM in the cluster:" 10 150 3 \
+        "Docker" "The most widely adopted and well-documented container runtime, it allows for simple container management." \
+        "Containerd" "Highly adopted, but minimal container runtime." \
+        "CRI-O" "A lightweight, Kubernetes-specific container runtime." \
+        3>&1 1>&2 2>&3)
+
     confirmJoin;
+}
+
+# --- Initialization of the Join Cluster ---
+function initJoinMaster {
+    
+    ### --- Initialization ---
+
+    clear
+    log "Joining a MASTER Node to a Kvoke Cluster"
+
+    ### Install Tools on the HOST
+    log "Installing all the necessary Tools"
+    sudo apt update -y;
+    sudo apt install sshpass software-properties-common -y;
+    sudo add-apt-repository --yes --update ppa:ansible/ansible;
+    sudo apt install ansible -y;
+
+    ### Enabling Scripts (Bash) on the HOST
+    chmod +x Config/init.sh Config/Join/Master/*
+
+    ### Ansible Inventory creation
+    inventoryJoin
+
+    ### Ping Test
+    log "Testing the Connectivity to all the Nodes"
+    ansible all_vms -m ping;
+    if [ $? -ne 0 ]; then
+        echo "${NC}${RED}ERROR:${NC} Some VMs are not reachable by Ansible! ${NC}${RED}ABORT.${NC}"
+        log "ERROR: Some VMs are not reachable by Ansible!"
+        abortExec
+    fi
+
+    ### Check if the node is already part of a K8S Cluster 
+    log "Testing if the Node is already part of a K8S Cluster"
+    ansible $ip_to_join -b -m shell -a "kubectl get nodes" -e 'ansible_python_interpreter=/usr/bin/python3'
+    if [ $? -eq 0 ]; then
+        echo "${NC}${RED}ERRORE:${NC} The node seems to be already part of a K8S Cluster! ${NC}${RED}ABORT.${NC}"
+        log "ERROR: The node seems to be already part of a K8S Cluster"
+        abortExec
+    fi
+
+    ### Playbook w// init.sh
+    log "Initiating the Node to Join"
+    ansible-playbook ./Config/Join/Master/playbook_init.yaml;
+    if [ $? -ne 0 ]; then
+        echo "${NC}${RED}ERROR:${NC} There were some problems and the Initiation did not succeed. ${NC}${RED}ABORT.${NC}"
+        log "ERROR: There were some problems and the Initiation did not succeed."
+        abortExec
+    fi
+
+    ### Load Certificates
+    log "Loading the Certificates to the new Master Node"
+    ansible-playbook ./Config/Join/Master/playbook-loadcerts.yaml;
+    if [ $? -ne 0 ]; then
+        echo "${NC}${RED}ERROR:${NC} Something went wrong transfering the certs to the other master! ${NC}${RED}ABORT.${NC}"
+        log "ERROR: Something went wrong transfering the certs to the other master!"
+        abortExec
+    fi
+
+    ### Playbook for Joining
+    log "Joining all the Nodes in the Cluster"
+    ansible-playbook ./Config/Join/Master/playbook_join.yaml;
+    if [ $? -ne 0 ]; then
+        echo "${NC}${RED}ERROR:${NC} Something went wrong Joining the Nodes in the Cluster! ${NC}${RED}ABORT.${NC}"
+        log "ERROR: Something went wrong Joining the Nodes in the Cluster!"
+        abortExec
+    fi
+
+    # --- KubeConfig Setup ---
+    log "Passing the KubeConfigs"
+    ansible-playbook ./Config/Join/Master/playbook_kubeconfig.yaml;
+    if [ $? -ne 0 ]; then
+        echo "${NC}${RED}ERROR:${NC} There were some problems passing the KubeConfigs! ${NC}${RED}ABORT.${NC}"
+        log "ERROR: There were some problems passing the KubeConfigs!"
+        abortExec
+    fi
+
+    ### Configure KeepAliveD on Master Nodes
+    log "Installing and Configuring KeepAliveD"
+    ansible-playbook ./Config/Join/Master/playbook_vip.yaml;
+    if [ $? -ne 0 ]; then
+        echo "${NC}${RED}ERROR:${NC} There were some problems and the KeepAliveD was NOT proprely configured ${NC}${RED}ABORT.${NC}"
+        log "ERROR: There were some problems and the KeepAliveD was NOT proprely configured"
+        abortExec
+    fi
+
+    ### Final Message
+    log "The node has been successfully attached to the cluster!"
+    echo -e "\n${NC}${GREEN}#######################################################################################${NC}\n"
+    echo -e "\n The node has been successfully attached to the cluster!\n"
+    echo -e "\n${NC}${GREEN}#######################################################################################${NC}\n"
 }
 
 ######################

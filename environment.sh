@@ -76,6 +76,22 @@ VM REQUIREMENTS:
 EOF
 )
 
+WELCOME_JOIN_1=$(cat <<'EOF'
+This script prepares and joins a master node to a Kvoke cluster. 
+It automates the entire process, including the installation of necessary tools, 
+the configuration of the container runtime, and the final joining of the node to the cluster.
+
+CLUSTER REQUIREMENTS:
+- The cluster has to be a Kvoke Cluster already initialied as a Stacked ETCD (HA).
+
+VM REQUIREMENTS:
+- The VM requires a unique IP address.
+- All VMs must reside on the same network (and must be reachable for each other), including the node to Join.
+- The node needs at least 2vCPU, 4GB of RAM and 25GB of storage.
+- All the VMs got to have the same sudoer user (With the same username and password), including the node to Join.
+EOF
+)
+
 WELCOME_1=$(cat <<'EOF'
 This cluster configuration requires less infrastructure then any other type of configuration, but it's less focused on high availability (NON-HA). 
 It is composed of only ONE Master node, and up to 10 Working nodes.
@@ -172,6 +188,18 @@ function confirm_page_join {
             CONFIRM=$(cat <<EOF
 Type of Node that is joining: Worker\n
 IP / VIP Master Node: $ip_master\n
+IP Node to Join: $ip_to_join\n
+Container Runtime used: $cri\n
+Credentials SSH sudoer\n
+Username: $username
+Password: $passwd
+EOF
+)
+            ;;
+        2)
+            CONFIRM=$(cat <<EOF
+Type of Node that is joining: Master\n
+VIP of the Cluster: $ip_master\n
 IP Node to Join: $ip_to_join\n
 Container Runtime used: $cri\n
 Credentials SSH sudoer\n
