@@ -1,8 +1,19 @@
 ---
+- hosts: all_vms
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Ensure VIP DNS entry is present in /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "{{ vip_ip }}   kvoke-vip"
+        state: present
+
 - hosts: masters[0]
   become: true
   become_method: sudo
   tasks:
+
     - name: Store the initialization file on the Master Node
       ansible.builtin.copy:
         src: stackedinit.sh

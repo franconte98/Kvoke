@@ -5,7 +5,7 @@
   tasks:
     - name: Store the initialization file on the VM
       ansible.builtin.copy:
-        src: ../init.sh
+        src: ../../init.sh
         dest: /tmp/init.sh
         mode: '0755'
       when: ansible_distribution_file_variety == "Debian"

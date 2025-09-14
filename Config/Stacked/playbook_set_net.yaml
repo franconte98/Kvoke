@@ -15,10 +15,20 @@
 
     - name: Add the load balancer IP to the found interface
       ansible.builtin.shell: |
-        ip addr add {{ vip_ip }}/32 dev {{ network_interface }}
+        ip addr add {{ vip_ip }}/24 dev {{ network_interface }}
       when: network_interface is defined
 
     - name: Verify that the virtual IP was added (optional)
       ansible.builtin.shell: "ip a | grep '{{ vip_ip }}'"
+      changed_when: false
+
+    - name: Check if VIP {{ vip_ip }} is active on {{ network_interface }}
+      ansible.builtin.shell: |
+        ip addr show dev {{ network_interface }} | grep -w "{{ vip_ip }}"
+      register: vip_check
+      failed_when: vip_check.rc != 0
+      retries: 5
+      delay: 3
+      until: vip_check.rc == 0
       changed_when: false
 ...
