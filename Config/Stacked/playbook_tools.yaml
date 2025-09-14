@@ -15,7 +15,28 @@
       when: ansible_distribution_file_variety == "Debian"
       register: create_result
 
-    - name: Show Creation Cluster Result
+    - name: Show Tools Installation Result
       ansible.builtin.debug:
         var: create_result
+
+- hosts: masters
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Ensure snapd is installed
+      ansible.builtin.package:
+        name: snapd
+        state: present
+
+    - name: Install k9s via snap
+      community.general.snap:
+        name: k9s
+        state: present
+
+    - name: Ensure symlink for k9s in /snap/bin
+      ansible.builtin.file:
+        src: /snap/k9s/current/bin/k9s
+        dest: /snap/bin/k9s
+        state: link
+        force: true
 ...

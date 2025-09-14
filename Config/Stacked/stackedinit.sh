@@ -34,15 +34,19 @@ apiVersion: kubeadm.k8s.io/v1beta4
 kind: ClusterConfiguration
 controlPlaneEndpoint: "$3:6443"
 certificatesDir: "/etc/kubernetes/pki"
+apiServer:
+  certSANs:
+    - "127.0.0.1"
+    - "localhost"
+    - "kvoke-vip"
+    - "$3"
 etcd:
   local:
     extraArgs:
     - name: election-timeout
       value: "5000"
     - name: heartbeat-interval
-      value: "250"
-    - name: quota-backend-bytes
-      value: "4294967296"
+      value: "500"
 EOF
 sudo kubeadm init --upload-certs --config /tmp/kubeadm_config.yaml
 

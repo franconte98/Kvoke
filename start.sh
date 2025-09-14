@@ -195,7 +195,7 @@ function mainMenu {
 ####################
 
 # --- Create Inventory Function ---
-function inventoryJoin {
+function inventoryWorker {
     
     rm -rf $OUTPUT_FILE;
     # Master
@@ -219,6 +219,40 @@ function inventoryJoin {
     echo "ansible_user=$username" >> "$OUTPUT_FILE"
     echo "ansible_ssh_pass=$passwd" >> "$OUTPUT_FILE"
     echo "ansible_become_pass=$passwd" >> "$OUTPUT_FILE"
+    echo "master_ip=$ip_master" >> "$OUTPUT_FILE"
+    echo "ip_to_join=$ip_to_join" >> "$OUTPUT_FILE"
+    echo "cri=$cri" >> "$OUTPUT_FILE"
+    echo "username=$username" >> "$OUTPUT_FILE"
+    echo "passwd=$passwd" >> "$OUTPUT_FILE"
+
+}
+
+# --- Create Inventory Function ---
+function inventoryMaster {
+    
+    rm -rf $OUTPUT_FILE;
+    # Master
+    echo "[master]" >> "$OUTPUT_FILE"
+    echo "$ip_master" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+
+    # Node To Join
+    echo "[join]" >> "$OUTPUT_FILE"
+    echo "$ip_to_join" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+
+    # All IPs
+    echo "[all_vms:children]" >> "$OUTPUT_FILE"
+    echo "master" >> "$OUTPUT_FILE"
+    echo "join" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+
+    # Credentials and Attributes
+    echo "[all_vms:vars]" >> "$OUTPUT_FILE"
+    echo "ansible_user=$username" >> "$OUTPUT_FILE"
+    echo "ansible_ssh_pass=$passwd" >> "$OUTPUT_FILE"
+    echo "ansible_become_pass=$passwd" >> "$OUTPUT_FILE"
+    echo "vip_ip=$vip_ip" >> "$OUTPUT_FILE"
     echo "master_ip=$ip_master" >> "$OUTPUT_FILE"
     echo "ip_to_join=$ip_to_join" >> "$OUTPUT_FILE"
     echo "cri=$cri" >> "$OUTPUT_FILE"
@@ -312,7 +346,7 @@ function initJoinWorker {
     chmod +x Config/init.sh Config/Join/Worker/*
 
     ### Ansible Inventory creation
-    inventoryJoin
+    inventoryWorker
 
     ### Ping Test
     log "Testing the Connectivity to all the Nodes"
@@ -346,6 +380,7 @@ function initJoinWorker {
     echo -e "\n${NC}${GREEN}#######################################################################################${NC}\n"
     echo -e "\n The node has been successfully attached to the cluster!\n"
     echo -e "\n${NC}${GREEN}#######################################################################################${NC}\n"
+    rm -rf $OUTPUT_FILE
 }
 
 # --- Menu to Join a Master Node ---
@@ -355,12 +390,17 @@ function JoinMasterMenu {
         --msgbox "$WELCOME_JOIN_1" 30 100
 
     ### Master Node's IP
-    ip_master=$(whiptail --title "Select the VIP" \
+    vip_ip=$(whiptail --title "Select the VIP" \
         --inputbox "Type the VIP of the Cluster to Join." 10 60 \
         "192.168.0.100" \
         3>&1 1>&2 2>&3)
+
+    ip_master=$(whiptail --title "Select a random Master Node" \
+        --inputbox "Type the IP of a random Master Node already in the cluster." 10 60 \
+        "192.168.0.100" \
+        3>&1 1>&2 2>&3)
     
-    ### Master Node's IP
+    ### Master Node's IP to Join
     ip_to_join=$(whiptail --title "Select the IP of the Node to Join" \
         --inputbox "Type the IP of the Node to Join as a Master." 10 60 \
         "192.168.0.100" \
@@ -407,7 +447,7 @@ function initJoinMaster {
     chmod +x Config/init.sh Config/Join/Master/*
 
     ### Ansible Inventory creation
-    inventoryJoin
+    inventoryMaster
 
     ### Ping Test
     log "Testing the Connectivity to all the Nodes"
@@ -433,15 +473,6 @@ function initJoinMaster {
     if [ $? -ne 0 ]; then
         echo "${NC}${RED}ERROR:${NC} There were some problems and the Initiation did not succeed. ${NC}${RED}ABORT.${NC}"
         log "ERROR: There were some problems and the Initiation did not succeed."
-        abortExec
-    fi
-
-    ### Load Certificates
-    log "Loading the Certificates to the new Master Node"
-    ansible-playbook ./Config/Join/Master/playbook-loadcerts.yaml;
-    if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} Something went wrong transfering the certs to the other master! ${NC}${RED}ABORT.${NC}"
-        log "ERROR: Something went wrong transfering the certs to the other master!"
         abortExec
     fi
 
@@ -477,6 +508,7 @@ function initJoinMaster {
     echo -e "\n${NC}${GREEN}#######################################################################################${NC}\n"
     echo -e "\n The node has been successfully attached to the cluster!\n"
     echo -e "\n${NC}${GREEN}#######################################################################################${NC}\n"
+    rm -rf $OUTPUT_FILE
 }
 
 ######################
@@ -713,6 +745,7 @@ function initSimple {
     echo -e "\n${NC}${GREEN}#######################################################################################${NC}\n"
     echo -e "\n Installation and Configuration are done! Check your cluster using the 'k9s' command in the Master Node.\n"
     echo -e "\n${NC}${GREEN}#######################################################################################${NC}\n"
+    rm -rf $OUTPUT_FILE
 }
 
 ##############################
@@ -932,15 +965,6 @@ function initStacked {
 
     ### --- Join + Setup ---
 
-    ### Load Certificates
-    log "Loading the Certificates to all the Master Nodes"
-    ansible-playbook ./Config/Stacked/playbook-loadcerts.yaml;
-    if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} Something went wrong transfering the certs to the other masters! ${NC}${RED}ABORT.${NC}"
-        log "ERROR: Something went wrong transfering the certs to the other masters!"
-        abortExec
-    fi
-
     ### Playbook for Joining
     log "Joining all the Nodes in the Cluster"
     ansible-playbook ./Config/Stacked/playbook_join.yaml;
@@ -991,6 +1015,7 @@ function initStacked {
     echo -e "\n${NC}${GREEN}#######################################################################################${NC}\n"
     echo -e "\n Installation and Configuration are done! Check your cluster using the 'k9s' command in the VIP.\n"
     echo -e "\n${NC}${GREEN}#######################################################################################${NC}\n"
+    rm -rf $OUTPUT_FILE
 }
 
 ############################################################################################################################

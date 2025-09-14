@@ -53,7 +53,7 @@
 
           vrrp_instance lb-vips {
               state BACKUP
-              interface {{ hostvars[groups['masters'][0]]['network_interface'] }}
+              interface {{ hostvars[groups['master'][0]]['network_interface'] }}
               virtual_router_id 206
               priority 100
               advert_int 1
@@ -66,7 +66,7 @@
                   auth_pass password
               }
               virtual_ipaddress {
-                  {{ vip_ip }}/32 dev {{ hostvars[groups['masters'][0]]['network_interface'] }}
+                  {{ vip_ip }}/32 dev {{ hostvars[groups['master'][0]]['network_interface'] }}
               }
           }
         dest: /etc/keepalived/keepalived.conf
@@ -80,6 +80,31 @@
         name: keepalived
         state: started
         enabled: yes
+
+    - name: Wait for the API to be reachable via VIP
+      ansible.builtin.wait_for:
+        host: "{{ vip_ip }}"
+        port: 6443
+        delay: 5
+        timeout: 120
+        state: started
+    
+    - name: Ensure snapd is installed
+      ansible.builtin.package:
+        name: snapd
+        state: present
+
+    - name: Install k9s via snap
+      community.general.snap:
+        name: k9s
+        state: present
+
+    - name: Ensure symlink for k9s in /snap/bin
+      ansible.builtin.file:
+        src: /snap/k9s/current/bin/k9s
+        dest: /snap/bin/k9s
+        state: link
+        force: true
 
   handlers:
     - name: Restart Keepalived Service
