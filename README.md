@@ -63,9 +63,9 @@ This project requires a pre-configured infrastructure of virtual machines that a
 
 <ins>Minimum System Requirements:</ins> Each virtual machine must meet or exceed the following specifications to function optimally as a Kubernetes node:
 
-- <b>CPU:</b> 4 vCPUs
+- <b>CPU:</b> 2 vCPUs
 
-- <b>RAM:</b> 4 GB
+- <b>RAM:</b> 2 GB
 
 - <b>Storage:</b> 25 GB of available disk space
 
