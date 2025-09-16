@@ -18,11 +18,11 @@
         ip addr add {{ vip_ip }}/24 dev {{ network_interface }}
       when: network_interface is defined
 
-    - name: Verify that the virtual VIP was added (optional)
+    - name: Verify that the virtual VIP was added
       ansible.builtin.shell: "ip a | grep '{{ vip_ip }}'"
       changed_when: false
 
-    - name: Check if VIP {{ vip_ip }} is active on {{ network_interface }}
+    - name: Check if {{ vip_ip }} is active on {{ network_interface }}
       ansible.builtin.shell: |
         ip addr show dev {{ network_interface }} | grep -w "{{ vip_ip }}"
       register: vip_check

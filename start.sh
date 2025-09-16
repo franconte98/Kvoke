@@ -9,6 +9,7 @@ source ./environment.sh
 
 # --- Function called when aborting the execution ---
 function abortExec {
+    rm -rf $OUTPUT_FILE
     echo "Aborting the execution of Kinit. Check the logs in $OUTPUT_LOGS"
     exit 1;
 }
@@ -18,7 +19,7 @@ function log() {
     echo "$(date +'%Y-%m-%d %H:%M:%S') - $1" | tee -a $OUTPUT_LOGS
 }
 
-# --- Simple Function to Make sure there is a Min-Max on a given Value ---
+# --- Function to Make sure there is a Min-Max on a given numeric Value ---
 function validate_range() {
   local value="$1"
   local MIN_VALUE="$2"
@@ -114,7 +115,7 @@ function confirmCreate {
     esac
 }
 
-# --- Confirmation Menu Function Join ---
+# --- Confirmation Menu Function to Join Nodes ---
 function confirmJoin {
 
     # --- Filter the type of configuration ---
@@ -261,8 +262,7 @@ function inventoryMaster {
 
 }
 
-# --- Join Cluster Menu ---
-# mainMenu -> joinMenu
+# --- Main menu for the Join Option ---
 function joinMenu {
 
     # --- Menu ---
@@ -352,7 +352,7 @@ function initJoinWorker {
     log "Testing the Connectivity to all the Nodes"
     ansible all_vms -m ping;
     if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} Some VMs are not reachable by Ansible! ${NC}${RED}ABORT.${NC}"
+        echo -e "${NC}${RED}ERROR:${NC} Some VMs are not reachable by Ansible! ${NC}${RED}ABORT.${NC}"
         log "ERROR: Some VMs are not reachable by Ansible!"
         abortExec
     fi
@@ -361,7 +361,7 @@ function initJoinWorker {
     log "Initiating the Node to Join"
     ansible-playbook ./Config/Join/Worker/playbook_init.yaml;
     if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} There were some problems and the Initiation did not succeed. ${NC}${RED}ABORT.${NC}"
+        echo -e "${NC}${RED}ERROR:${NC} There were some problems and the Initiation did not succeed. ${NC}${RED}ABORT.${NC}"
         log "ERROR: There were some problems and the Initiation did not succeed."
         abortExec
     fi
@@ -370,7 +370,7 @@ function initJoinWorker {
     log "Joining the Node"
     ansible-playbook ./Config/Join/Worker/playbook_join.yaml;
     if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} There were some problems and the Worker Nodes did not join. ${NC}${RED}ABORT.${NC}"
+        echo -e "${NC}${RED}ERROR:${NC} There were some problems and the Worker Nodes did not join. ${NC}${RED}ABORT.${NC}"
         log "ERROR: There were some problems and the Worker Nodes did not join."
         abortExec
     fi
@@ -453,7 +453,7 @@ function initJoinMaster {
     log "Testing the Connectivity to all the Nodes"
     ansible all_vms -m ping;
     if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} Some VMs are not reachable by Ansible! ${NC}${RED}ABORT.${NC}"
+        echo -e "${NC}${RED}ERROR:${NC} Some VMs are not reachable by Ansible! ${NC}${RED}ABORT.${NC}"
         log "ERROR: Some VMs are not reachable by Ansible!"
         abortExec
     fi
@@ -462,7 +462,7 @@ function initJoinMaster {
     log "Testing if the Node is already part of a K8S Cluster"
     ansible $ip_to_join -b -m shell -a "test -f /etc/kubernetes/kubelet.conf" -e 'ansible_python_interpreter=/usr/bin/python3'
     if [ $? -eq 0 ]; then
-        echo "${NC}${RED}ERRORE:${NC} The node seems to be already part of a K8S Cluster! ${NC}${RED}ABORT.${NC}"
+        echo -e "${NC}${RED}ERRORE:${NC} The node seems to be already part of a K8S Cluster! ${NC}${RED}ABORT.${NC}"
         log "ERROR: The node seems to be already part of a K8S Cluster"
         abortExec
     fi
@@ -471,7 +471,7 @@ function initJoinMaster {
     log "Initiating the Node to Join"
     ansible-playbook ./Config/Join/Master/playbook_init.yaml;
     if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} There were some problems and the Initiation did not succeed. ${NC}${RED}ABORT.${NC}"
+        echo -e "${NC}${RED}ERROR:${NC} There were some problems and the Initiation did not succeed. ${NC}${RED}ABORT.${NC}"
         log "ERROR: There were some problems and the Initiation did not succeed."
         abortExec
     fi
@@ -480,7 +480,7 @@ function initJoinMaster {
     log "Joining all the Nodes in the Cluster"
     ansible-playbook ./Config/Join/Master/playbook_join.yaml;
     if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} Something went wrong Joining the Nodes in the Cluster! ${NC}${RED}ABORT.${NC}"
+        echo -e "${NC}${RED}ERROR:${NC} Something went wrong Joining the Nodes in the Cluster! ${NC}${RED}ABORT.${NC}"
         log "ERROR: Something went wrong Joining the Nodes in the Cluster!"
         abortExec
     fi
@@ -489,7 +489,7 @@ function initJoinMaster {
     log "Passing the KubeConfigs"
     ansible-playbook ./Config/Join/Master/playbook_kubeconfig.yaml;
     if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} There were some problems passing the KubeConfigs! ${NC}${RED}ABORT.${NC}"
+        echo -e "${NC}${RED}ERROR:${NC} There were some problems passing the KubeConfigs! ${NC}${RED}ABORT.${NC}"
         log "ERROR: There were some problems passing the KubeConfigs!"
         abortExec
     fi
@@ -498,7 +498,7 @@ function initJoinMaster {
     log "Installing and Configuring KeepAliveD"
     ansible-playbook ./Config/Join/Master/playbook_vip.yaml;
     if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} There were some problems and the KeepAliveD was NOT proprely configured ${NC}${RED}ABORT.${NC}"
+        echo -e "${NC}${RED}ERROR:${NC} There were some problems and the KeepAliveD was NOT proprely configured ${NC}${RED}ABORT.${NC}"
         log "ERROR: There were some problems and the KeepAliveD was NOT proprely configured"
         abortExec
     fi
@@ -507,7 +507,7 @@ function initJoinMaster {
     log "Installing and Configuring Tools"
     ansible-playbook ./Config/Join/Master/playbook_tools.yaml;
     if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} There were some problems installing necessary tools! ${NC}${RED}ABORT.${NC}"
+        echo -e "${NC}${RED}ERROR:${NC} There were some problems installing necessary tools! ${NC}${RED}ABORT.${NC}"
         log "ERROR: There were some problems installing necessary tools"
         abortExec
     fi
@@ -697,7 +697,7 @@ function initSimple {
     log "Testing the Connectivity to all the Nodes"
     ansible all_vms -m ping;
     if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} Some VMs are not reachable by Ansible! ${NC}${RED}ABORT.${NC}"
+        echo -e "${NC}${RED}ERROR:${NC} Some VMs are not reachable by Ansible! ${NC}${RED}ABORT.${NC}"
         log "ERROR: Some VMs are not reachable by Ansible!"
         abortExec
     fi
@@ -708,7 +708,7 @@ function initSimple {
         ansible $node -b -m shell -a "test -f /etc/kubernetes/kubelet.conf" -e 'ansible_python_interpreter=/usr/bin/python3'
         
         if [ $? -eq 0 ]; then
-            echo "${NC}${RED}ERRORE:${NC} The node with IP '$node' seems to be already part of a K8S Cluster! ${NC}${RED}ABORT.${NC}"
+            echo -e "${NC}${RED}ERRORE:${NC} The node with IP '$node' seems to be already part of a K8S Cluster! ${NC}${RED}ABORT.${NC}"
             log "ERROR: The node with IP '$node' seems to be already part of a K8S Cluster!"
             abortExec
         fi
@@ -718,7 +718,7 @@ function initSimple {
     log "Initiating all the Nodes"
     ansible-playbook ./Config/Simple/playbook_init.yaml;
     if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} There were some problems and the Initiation did not succeed. ${NC}${RED}ABORT.${NC}"
+        echo -e "${NC}${RED}ERROR:${NC} There were some problems and the Initiation did not succeed. ${NC}${RED}ABORT.${NC}"
         log "ERROR: There were some problems and the Initiation did not succeed."
         abortExec
     fi
@@ -729,7 +729,7 @@ function initSimple {
     log "Creating the Cluster and Installing all the additional tools for the Cluster"
     ansible-playbook ./Config/Simple/playbook_create.yaml;
     if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} Something went wrong initiating the cluster with Kubeadm! ${NC}${RED}ABORT.${NC}"
+        echo -e "${NC}${RED}ERROR:${NC} Something went wrong initiating the cluster with Kubeadm! ${NC}${RED}ABORT.${NC}"
         log "ERROR: Something went wrong initiating the cluster with Kubeadm!"
         abortExec
     fi
@@ -740,7 +740,7 @@ function initSimple {
     log "Joining all the Nodes"
     ansible-playbook ./Config/Simple/playbook_join.yaml;
     if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} There were some problems and the Worker Nodes did not join. ${NC}${RED}ABORT.${NC}"
+        echo -e "${NC}${RED}ERROR:${NC} There were some problems and the Worker Nodes did not join. ${NC}${RED}ABORT.${NC}"
         log "ERROR: There were some problems and the Worker Nodes did not join."
         abortExec
     fi
@@ -932,7 +932,7 @@ function initStacked {
     log "Testing the Connectivity to all the Nodes"
     ansible all_vms -m ping;
     if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} Some VMs are not reachable by Ansible! ${NC}${RED}ABORT.${NC}"
+        echo -e "${NC}${RED}ERROR:${NC} Some VMs are not reachable by Ansible! ${NC}${RED}ABORT.${NC}"
         log "ERROR: Some VMs are not reachable by Ansible!"
         abortExec
     fi
@@ -943,7 +943,7 @@ function initStacked {
         ansible $node -b -m shell -a "test -f /etc/kubernetes/kubelet.conf" -e 'ansible_python_interpreter=/usr/bin/python3'
         
         if [ $? -eq 0 ]; then
-            echo "${NC}${RED}ERRORE:${NC} The node with IP '$node' seems to be already part of a K8S Cluster! ${NC}${RED}ABORT.${NC}"
+            echo -e "${NC}${RED}ERRORE:${NC} The node with IP '$node' seems to be already part of a K8S Cluster! ${NC}${RED}ABORT.${NC}"
             log "ERROR: The node with IP '$node' seems to be already part of a K8S Cluster!"
             abortExec
         fi
@@ -953,7 +953,7 @@ function initStacked {
     log "Initiating all the Nodes"
     ansible-playbook ./Config/Stacked/playbook_init.yaml;
     if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} Something went wrong initiating the nodes! ${NC}${RED}ABORT.${NC}"
+        echo -e "${NC}${RED}ERROR:${NC} Something went wrong initiating the nodes! ${NC}${RED}ABORT.${NC}"
         log "ERROR: Something went wrong initiating the nodes!"
         abortExec
     fi
@@ -967,7 +967,7 @@ function initStacked {
     log "Creating the cluster with Kubeadm"
     ansible-playbook ./Config/Stacked/playbook_create.yaml;
     if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} Something went wrong initiating the cluster with Kubeadm! ${NC}${RED}ABORT.${NC}"
+        echo -e "${NC}${RED}ERROR:${NC} Something went wrong initiating the cluster with Kubeadm! ${NC}${RED}ABORT.${NC}"
         log "ERROR: Something went wrong initiating the cluster with Kubeadm!"
         abortExec
     fi
@@ -978,7 +978,7 @@ function initStacked {
     log "Joining all the Nodes in the Cluster"
     ansible-playbook ./Config/Stacked/playbook_join.yaml;
     if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} Something went wrong Joining the Nodes in the Cluster! ${NC}${RED}ABORT.${NC}"
+        echo -e "${NC}${RED}ERROR:${NC} Something went wrong Joining the Nodes in the Cluster! ${NC}${RED}ABORT.${NC}"
         log "ERROR: Something went wrong Joining the Nodes in the Cluster!"
         abortExec
     fi
@@ -987,7 +987,7 @@ function initStacked {
     log "Passing the KubeConfigs"
     ansible-playbook ./Config/Stacked/playbook_kubeconfig.yaml;
     if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} There were some problems passing the KubeConfigs! ${NC}${RED}ABORT.${NC}"
+        echo -e "${NC}${RED}ERROR:${NC} There were some problems passing the KubeConfigs! ${NC}${RED}ABORT.${NC}"
         log "ERROR: There were some problems passing the KubeConfigs!"
         abortExec
     fi
@@ -996,7 +996,7 @@ function initStacked {
     log "Installing and Configuring KeepAliveD"
     ansible-playbook ./Config/Stacked/playbook_vip.yaml;
     if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} There were some problems and the KeepAliveD was NOT proprely configured ${NC}${RED}ABORT.${NC}"
+        echo -e "${NC}${RED}ERROR:${NC} There were some problems and the KeepAliveD was NOT proprely configured ${NC}${RED}ABORT.${NC}"
         log "ERROR: There were some problems and the KeepAliveD was NOT proprely configured"
         abortExec
     fi
@@ -1005,7 +1005,7 @@ function initStacked {
     log "Installing all additional Tools for the Cluster"
     ansible-playbook ./Config/Stacked/playbook_tools.yaml;
     if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} There were some problems installing the tools! ${NC}${RED}ABORT.${NC}"
+        echo -e "${NC}${RED}ERROR:${NC} There were some problems installing the tools! ${NC}${RED}ABORT.${NC}"
         log "ERROR: There were some problems installing the tools!"
         abortExec
     fi
@@ -1014,7 +1014,7 @@ function initStacked {
     log "Adding the Load Balancer Range."
     ansible-playbook ./Config/Stacked/playbook_lb.yaml;
     if [ $? -ne 0 ]; then
-        echo "${NC}${RED}ERROR:${NC} There were some problems adding the Load Balancer Range! ${NC}${RED}ABORT.${NC}"
+        echo -e "${NC}${RED}ERROR:${NC} There were some problems adding the Load Balancer Range! ${NC}${RED}ABORT.${NC}"
         log "ERROR: There were some problems adding the Load Balancer Range!"
         abortExec
     fi

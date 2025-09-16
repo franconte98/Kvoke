@@ -1,5 +1,6 @@
 ---
-- hosts: masters[0]
+- name: Installing Necessary Tools on the Cluster
+  hosts: masters[0]
   become: true
   become_method: sudo
   tasks:
@@ -29,7 +30,8 @@
       ansible.builtin.debug:
         var: create_result
 
-- hosts: masters
+- name: Installing K9S on each Master Node
+  hosts: masters
   become: true
   become_method: sudo
   tasks:

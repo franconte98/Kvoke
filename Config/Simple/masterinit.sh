@@ -65,7 +65,3 @@ kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/downloa
 VER_KGATEWAY_HELM=$(curl --silent -qI https://github.com/kgateway-dev/kgateway/releases/latest | awk -F '/' '/^location/ {print substr($NF, 1, length($NF)-1)}');
 helm upgrade --install --create-namespace --namespace kgateway-system --version "$VER_KGATEWAY_HELM" kgateway-crds oci://cr.kgateway.dev/kgateway-dev/charts/kgateway-crds;
 helm upgrade --install --namespace kgateway-system --version "$VER_KGATEWAY_HELM" kgateway oci://cr.kgateway.dev/kgateway-dev/charts/kgateway;
-
-### Add k9s (Complete Dashboard accessible from Command Line)
-sudo snap install k9s;
-sudo ln -sf /snap/k9s/current/bin/k9s /snap/bin/;

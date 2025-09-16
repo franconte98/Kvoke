@@ -13,7 +13,7 @@
       ansible.builtin.set_fact:
         network_interface: "{{ interface_output.stdout }}"
 
-    - name: Remove the load balancer IP to the found interface
+    - name: Remove the load balancer IP to the found interface in Primary Master
       ansible.builtin.shell: |
          ip add del {{ vip_ip }}/24 dev {{ network_interface }}
       when: network_interface is defined
