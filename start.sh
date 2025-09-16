@@ -195,7 +195,32 @@ function mainMenu {
 ##  Join Cluster  ##
 ####################
 
-# --- Create Inventory Function ---
+# --- Main menu for the Join Option ---
+function joinMenu {
+
+    # --- Menu ---
+    CHOICE_JOIN=$(whiptail --title "Join Node to a Cluster" \
+        --menu "Choose which type of Node you wanna Join to the Cluster." 20 70 2 \
+        "1" "Join a Worker Node" \
+        "2" "Join a Master Node" \
+        3>&1 1>&2 2>&3)
+
+    # --- Routing w// switch ---
+    case $CHOICE_JOIN in
+        1)
+            JoinWorkerMenu
+            ;;
+        2)
+            JoinMasterMenu
+            ;;
+        *)
+            clear
+            echo -e "\nInvalid Option!\n"
+            ;;
+    esac
+}
+
+# --- Create Inventory Function to Join a Worker ---
 function inventoryWorker {
     
     rm -rf $OUTPUT_FILE;
@@ -228,7 +253,7 @@ function inventoryWorker {
 
 }
 
-# --- Create Inventory Function ---
+# --- Create Inventory Function to Join a Master ---
 function inventoryMaster {
     
     rm -rf $OUTPUT_FILE;
@@ -260,31 +285,6 @@ function inventoryMaster {
     echo "username=$username" >> "$OUTPUT_FILE"
     echo "passwd=$passwd" >> "$OUTPUT_FILE"
 
-}
-
-# --- Main menu for the Join Option ---
-function joinMenu {
-
-    # --- Menu ---
-    CHOICE_JOIN=$(whiptail --title "Join Node to a Cluster" \
-        --menu "Choose which type of Node you wanna Join to the Cluster." 20 70 2 \
-        "1" "Join a Worker Node" \
-        "2" "Join a Master Node" \
-        3>&1 1>&2 2>&3)
-
-    # --- Routing w// switch ---
-    case $CHOICE_JOIN in
-        1)
-            JoinWorkerMenu
-            ;;
-        2)
-            JoinMasterMenu
-            ;;
-        *)
-            clear
-            echo -e "\nInvalid Option!\n"
-            ;;
-    esac
 }
 
 # --- Menu to Join a Worker Node ---
