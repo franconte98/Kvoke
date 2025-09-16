@@ -13,12 +13,12 @@
       ansible.builtin.set_fact:
         network_interface: "{{ interface_output.stdout }}"
 
-    - name: Add the load balancer IP to the found interface
+    - name: Add the load balancer VIP to the found interface
       ansible.builtin.shell: |
         ip addr add {{ vip_ip }}/24 dev {{ network_interface }}
       when: network_interface is defined
 
-    - name: Verify that the virtual IP was added (optional)
+    - name: Verify that the virtual VIP was added (optional)
       ansible.builtin.shell: "ip a | grep '{{ vip_ip }}'"
       changed_when: false
 

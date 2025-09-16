@@ -58,7 +58,7 @@ It includes three official node-joining configurations, adaptable to your availa
 VMs REQUIREMENTS:
 - Each VM requires a unique IP address.
 - All VMs must reside on the same network (and must be reachable for each other).
-- At least 2vCPU, 4GB of RAM and 25GB of storage for each VM.
+- At least 2vCPU, 2GB of RAM and 25GB of storage for each Worker Node and 4vCPU, 4GB of RAM and 50GB of storage for each Master Node.
 - All the VMs got to have the same sudoer user (With the same username and password).
 EOF
 )
@@ -71,7 +71,7 @@ the configuration of the container runtime, and the final joining of the node to
 VM REQUIREMENTS:
 - The VM requires a unique IP address.
 - All VMs must reside on the same network (and must be reachable for each other), including the node to Join.
-- The node needs at least 2vCPU, 4GB of RAM and 25GB of storage.
+- The node needs at least 2vCPU, 2GB of RAM and 25GB of storage.
 - All the VMs got to have the same sudoer user (With the same username and password), including the node to Join.
 EOF
 )
@@ -87,7 +87,7 @@ CLUSTER REQUIREMENTS:
 VM REQUIREMENTS:
 - The VM requires a unique IP address.
 - All VMs must reside on the same network (and must be reachable for each other), including the node to Join.
-- The node needs at least 2vCPU, 4GB of RAM and 25GB of storage.
+- The node needs at least 4vCPU, 4GB of RAM and 50GB of storage.
 - All the VMs got to have the same sudoer user (With the same username and password), including the node to Join.
 EOF
 )
@@ -104,7 +104,7 @@ MINIMUM REQUIREMENTS:
 VMs REQUIREMENTS:
 - Each VM requires a unique IP address.
 - All VMs must reside on the same network (and must be reachable for each other).
-- At least 2vCPU, 4GB of RAM and 25GB of storage for each VM.
+- At least 2vCPU, 2GB of RAM and 25GB of storage for each Worker Node and 4vCPU, 4GB of RAM and 50GB of storage for each Master Node.
 - All the VMs got to have the same sudoer user (With the same username and password).
 EOF
 )
@@ -122,7 +122,7 @@ MINIMUM REQUIREMENTS:
 VMs REQUIREMENTS:
 - Each VM requires a unique IP address.
 - All VMs must reside on the same network (and must be reachable for each other).
-- At least 2vCPU, 4GB of RAM and 25GB of storage for each VM.
+- At least 2vCPU, 2GB of RAM and 25GB of storage for each Worker Node and 4vCPU, 4GB of RAM and 50GB of storage for each Master Node.
 - All the VMs got to have the same sudoer user (With the same username and password).
 EOF
 )
@@ -199,7 +199,8 @@ EOF
         2)
             CONFIRM=$(cat <<EOF
 Type of Node that is joining: Master\n
-VIP of the Cluster: $ip_master\n
+VIP of the Cluster: $vip_ip\n
+IP of a random Master: $ip_master\n
 IP Node to Join: $ip_to_join\n
 Container Runtime used: $cri\n
 Credentials SSH sudoer\n

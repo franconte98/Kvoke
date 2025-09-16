@@ -3,20 +3,31 @@
   become: true
   become_method: sudo
   tasks:
-    - name: Generate the join command
+    - name: Wait for the API to be reachable via VIP
+      ansible.builtin.wait_for:
+        host: "{{ vip_ip }}"
+        port: 6443
+        delay: 5
+        timeout: 120
+        state: started
+
+    - name: Generate the join command (via VIP)
       ansible.builtin.command: kubeadm token create --print-join-command
       register: join_command_output
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
 
     - name: Set the join command as a fact
       ansible.builtin.set_fact:
         join_command: "{{ join_command_output.stdout.split() | join(' ') }}"
-    
-    - name: Run kubeadm upload-certs on the primary (via VIP or host)
-      become: true
+
+    - name: Run kubeadm upload-certs (valid via VIP)
       shell: kubeadm init phase upload-certs --upload-certs
       register: upload_certs
       changed_when: "'certificate key' in upload_certs.stdout"
       failed_when: upload_certs.rc != 0 and "'already uploaded' not in upload_certs.stderr"
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
 
     - name: Extract certificate key from output
       set_fact:
@@ -37,6 +48,12 @@
         path: /etc/kubernetes/kubelet.conf
       register: kube_joined_status
 
+    - name: Ensure VIP DNS entry is present in /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "{{ vip_ip }}   kvoke-vip"
+        state: present
+
     - name: Set the CRI Socket Path
       ansible.builtin.set_fact:
         cri_socket: "{{ {
@@ -45,13 +62,14 @@
           'CRI-O': 'unix:///var/run/crio/crio.sock'
         }[cri] }}"
 
-    - name: Verify etcd health before joining a new control-plane
-      shell: kubectl get --raw='/readyz?verbose' | grep etcd
+    - name: Verify etcd health before joining a new control-plane (via VIP)
+      shell: "KUBECONFIG=/etc/kubernetes/admin.conf kubectl get --raw='/readyz?verbose' | grep etcd"
       register: etcd_health_prejoin
       retries: 20
       delay: 15
       until: etcd_health_prejoin.rc == 0
       delegate_to: "{{ groups['master'][0] }}"
+      become_user: root
       when:
         - not kube_joined_status.stat.exists
 
@@ -67,14 +85,16 @@
         - not kube_joined_status.stat.exists
       register: master_join_result
 
-    - name: Wait until etcd cluster is healthy
-      shell: "kubectl get --raw='/readyz?verbose' | grep etcd"
-      register: etcd_health
-      retries: 40
+    - name: Wait until etcd cluster is healthy (via VIP)
+      shell: "KUBECONFIG=/etc/kubernetes/admin.conf kubectl get --raw='/readyz?verbose' | grep etcd"
+      register: etcd_health_postjoin
+      retries: 20
       delay: 15
-      until: etcd_health.rc == 0
+      until: etcd_health_postjoin.rc == 0
       delegate_to: "{{ groups['master'][0] }}"
+      become_user: root
 
     - name: Show Join Result Masters
       ansible.builtin.debug:
         var: master_join_result
+...

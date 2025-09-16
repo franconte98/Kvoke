@@ -460,7 +460,7 @@ function initJoinMaster {
 
     ### Check if the node is already part of a K8S Cluster 
     log "Testing if the Node is already part of a K8S Cluster"
-    ansible $ip_to_join -b -m shell -a "kubectl get nodes" -e 'ansible_python_interpreter=/usr/bin/python3'
+    ansible $ip_to_join -b -m shell -a "test -f /etc/kubernetes/kubelet.conf" -e 'ansible_python_interpreter=/usr/bin/python3'
     if [ $? -eq 0 ]; then
         echo "${NC}${RED}ERRORE:${NC} The node seems to be already part of a K8S Cluster! ${NC}${RED}ABORT.${NC}"
         log "ERROR: The node seems to be already part of a K8S Cluster"
@@ -500,6 +500,15 @@ function initJoinMaster {
     if [ $? -ne 0 ]; then
         echo "${NC}${RED}ERROR:${NC} There were some problems and the KeepAliveD was NOT proprely configured ${NC}${RED}ABORT.${NC}"
         log "ERROR: There were some problems and the KeepAliveD was NOT proprely configured"
+        abortExec
+    fi
+
+    ### Installing Tools to the node
+    log "Installing and Configuring Tools"
+    ansible-playbook ./Config/Join/Master/playbook_tools.yaml;
+    if [ $? -ne 0 ]; then
+        echo "${NC}${RED}ERROR:${NC} There were some problems installing necessary tools! ${NC}${RED}ABORT.${NC}"
+        log "ERROR: There were some problems installing necessary tools"
         abortExec
     fi
 
@@ -696,7 +705,7 @@ function initSimple {
     ### Check if nodes are already part of a K8S Cluster 
     log "Testing if the Nodes are already part of a K8S Cluster"
     for node in $(ansible all_vms --list-hosts | grep -v 'hosts'); do
-        ansible $node -b -m shell -a "kubectl get nodes" -e 'ansible_python_interpreter=/usr/bin/python3'
+        ansible $node -b -m shell -a "test -f /etc/kubernetes/kubelet.conf" -e 'ansible_python_interpreter=/usr/bin/python3'
         
         if [ $? -eq 0 ]; then
             echo "${NC}${RED}ERRORE:${NC} The node with IP '$node' seems to be already part of a K8S Cluster! ${NC}${RED}ABORT.${NC}"
@@ -931,7 +940,7 @@ function initStacked {
     ### Check if nodes are already part of a K8S Cluster 
     log "Testing if the Nodes are already part of a K8S Cluster"
     for node in $(ansible all_vms --list-hosts | grep -v 'hosts'); do
-        ansible $node -b -m shell -a "kubectl get nodes" -e 'ansible_python_interpreter=/usr/bin/python3'
+        ansible $node -b -m shell -a "test -f /etc/kubernetes/kubelet.conf" -e 'ansible_python_interpreter=/usr/bin/python3'
         
         if [ $? -eq 0 ]; then
             echo "${NC}${RED}ERRORE:${NC} The node with IP '$node' seems to be already part of a K8S Cluster! ${NC}${RED}ABORT.${NC}"
