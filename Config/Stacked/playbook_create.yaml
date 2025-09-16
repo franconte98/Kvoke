@@ -13,7 +13,6 @@
   become: true
   become_method: sudo
   tasks:
-
     - name: Store the initialization file on the Master Node
       ansible.builtin.copy:
         src: stackedinit.sh

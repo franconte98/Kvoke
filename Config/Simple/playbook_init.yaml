@@ -10,7 +10,7 @@
         mode: '0755'
       when: ansible_distribution_file_variety == "Debian"
     
-    - name: Initialize each VM to become a K8S Node [~ 5 minutes]
+    - name: Initialize each VM to become a K8S Node [~ 2 minutes]
       ansible.builtin.command: /tmp/init.sh {{ ansible_host }} {{ cri }}
       when: ansible_distribution_file_variety == "Debian"
 ...

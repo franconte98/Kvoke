@@ -1,5 +1,5 @@
 ---
-- hosts: masters
+- hosts: masters[0]
   become: true
   become_method: sudo
   tasks:
