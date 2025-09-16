@@ -36,8 +36,9 @@
       ansible.builtin.apt:
         name: keepalived
         state: present
-        update_cache: yes # Update apt cache before installing
+        update_cache: yes
 
+    # Failover is about 30 seconds with this configuration, and check the API Server
     - name: Create keepalived.conf file
       ansible.builtin.copy:
         content: |
@@ -62,7 +63,6 @@
               virtual_router_id 206
               priority 100
               advert_int 1
-              nopreempt # Prevent fail-back
               track_script {
                   chk_script
               }

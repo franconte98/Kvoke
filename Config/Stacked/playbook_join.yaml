@@ -3,6 +3,22 @@
   become: true
   become_method: sudo
   tasks:
+    - name: Wait for the API to be reachable in the Node
+      ansible.builtin.wait_for:
+        host: "{{ ansible_host }}"
+        port: 6443
+        delay: 5
+        timeout: 120
+        state: started
+
+    - name: Wait for the API to be reachable via VIP
+      ansible.builtin.wait_for:
+        host: "{{ vip_ip }}"
+        port: 6443
+        delay: 5
+        timeout: 120
+        state: started
+        
     - name: Generate the join command
       ansible.builtin.command: kubeadm token create --print-join-command
       register: join_command_output
@@ -47,11 +63,12 @@
         }[cri] }}"
 
     - name: Verify etcd health before joining a new control-plane
-      shell: kubectl get --raw='/readyz?verbose' | grep etcd
+      shell: "KUBECONFIG=/etc/kubernetes/admin.conf kubectl get --raw='/readyz?verbose' | grep etcd"
       register: etcd_health_prejoin
       retries: 20
       delay: 15
       until: etcd_health_prejoin.rc == 0
+      become_user: root
       delegate_to: "{{ groups['masters'][0] }}"
       when:
         - inventory_hostname != groups['masters'][0]
@@ -68,21 +85,17 @@
       when:
         - inventory_hostname != groups['masters'][0]
         - not kube_joined_status.stat.exists
-      register: master_join_result
 
     - name: Wait until etcd cluster is healthy
-      shell: "kubectl get --raw='/readyz?verbose' | grep etcd"
+      shell: "KUBECONFIG=/etc/kubernetes/admin.conf kubectl get --raw='/readyz?verbose' | grep etcd"
       register: etcd_health
       retries: 40
       delay: 15
       until: etcd_health.rc == 0
+      become_user: root
       delegate_to: "{{ groups['masters'][0] }}"
       when:
         - inventory_hostname != groups['masters'][0]
-
-    - name: Show Join Result Masters
-      ansible.builtin.debug:
-        var: master_join_result
 
 - hosts: workers
   become: true
@@ -102,11 +115,12 @@
         }[cri] }}"
 
     - name: Check API server is reachable before joining workers
-      shell: "kubectl get --raw='/healthz'"
+      shell: "KUBECONFIG=/etc/kubernetes/admin.conf kubectl get --raw='/healthz'"
       register: apiserver_health
       retries: 20
       delay: 10
       until: apiserver_health.rc == 0
+      become_user: root
       delegate_to: "{{ groups['masters'][0] }}"        
 
     - name: Join Worker Nodes
@@ -115,9 +129,4 @@
         --cri-socket={{ cri_socket }}
       when:
         - not kube_joined_status.stat.exists
-      register: worker_join_result
-
-    - name: Show Join Result Workers
-      ansible.builtin.debug:
-        var: worker_join_result
 ...

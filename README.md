@@ -63,11 +63,22 @@ This project requires a pre-configured infrastructure of virtual machines that a
 
 <ins>Minimum System Requirements:</ins> Each virtual machine must meet or exceed the following specifications to function optimally as a Kubernetes node:
 
+<b>Worker Node (Minimal Requirements)</b>
+
 - <b>CPU:</b> 2 vCPUs
 
 - <b>RAM:</b> 2 GB
 
 - <b>Storage:</b> 25 GB of available disk space
+
+<b>Master Node (Minimal Requirements)</b>
+
+- <b>CPU:</b> 4 vCPUs
+
+- <b>RAM:</b> 4 GB
+
+- <b>Storage:</b> 50 GB of available disk space
+
 
 ### Installation
 
@@ -105,8 +116,6 @@ For optimal performance and minimal latency, it's recommended that you run Kvoke
 
 - <b>To Join a Node:</b> Execute Kvoke directly on the node you wish to add to an existing cluster. Follow the on-screen prompts and select the "Join" option when prompted.
 
-Currently, `Kvoke` supports only Debian-based Linux distributions (such as Debian and Ubuntu), but support for additional distributions will be available soon.
-
 ## About Kvoke
 
 `Kvoke` offers a unique approach to on-premise Kubernetes deployment. Unlike solutions that abstract away the cluster's core components, `Kvoke` utilizes kubeadm to create a standard, vendor-neutral Kubernetes cluster. This means your cluster is built with the same robust tools you would use for a manual configuration, guaranteeing long-term stability and compatibility with the wider Kubernetes ecosystem.
@@ -130,6 +139,10 @@ Additionally, Kvoke installs a curated selection of minimal yet extremely useful
 - <ins>MetalLB:</ins> A load-balancer implementation for bare metal Kubernetes clusters. It provides a network load-balancer using standard routing protocols.
 
 - <ins>Weave:</ins> A simple and lightweight networking solution that creates a virtual network connecting all your Kubernetes pods. It is used as the Container Network Interface (CNI).
+
+Currently, `Kvoke` supports only Debian-based Linux distributions (such as Debian and Ubuntu), but support for additional distributions will be available soon.
+
+The HA default setup is configured with a 30-second failover, which offers a practical balance between functionality and usability.
 
 ## License
 
