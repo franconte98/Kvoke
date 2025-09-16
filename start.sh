@@ -253,40 +253,6 @@ function inventoryWorker {
 
 }
 
-# --- Create Inventory Function to Join a Master ---
-function inventoryMaster {
-    
-    rm -rf $OUTPUT_FILE;
-    # Master
-    echo "[master]" >> "$OUTPUT_FILE"
-    echo "$ip_master" >> "$OUTPUT_FILE"
-    echo "" >> "$OUTPUT_FILE"
-
-    # Node To Join
-    echo "[join]" >> "$OUTPUT_FILE"
-    echo "$ip_to_join" >> "$OUTPUT_FILE"
-    echo "" >> "$OUTPUT_FILE"
-
-    # All IPs
-    echo "[all_vms:children]" >> "$OUTPUT_FILE"
-    echo "master" >> "$OUTPUT_FILE"
-    echo "join" >> "$OUTPUT_FILE"
-    echo "" >> "$OUTPUT_FILE"
-
-    # Credentials and Attributes
-    echo "[all_vms:vars]" >> "$OUTPUT_FILE"
-    echo "ansible_user=$username" >> "$OUTPUT_FILE"
-    echo "ansible_ssh_pass=$passwd" >> "$OUTPUT_FILE"
-    echo "ansible_become_pass=$passwd" >> "$OUTPUT_FILE"
-    echo "vip_ip=$vip_ip" >> "$OUTPUT_FILE"
-    echo "master_ip=$ip_master" >> "$OUTPUT_FILE"
-    echo "ip_to_join=$ip_to_join" >> "$OUTPUT_FILE"
-    echo "cri=$cri" >> "$OUTPUT_FILE"
-    echo "username=$username" >> "$OUTPUT_FILE"
-    echo "passwd=$passwd" >> "$OUTPUT_FILE"
-
-}
-
 # --- Menu to Join a Worker Node ---
 function JoinWorkerMenu {
 
@@ -381,6 +347,40 @@ function initJoinWorker {
     echo -e "\n The node has been successfully attached to the cluster!\n"
     echo -e "\n${NC}${GREEN}#######################################################################################${NC}\n"
     rm -rf $OUTPUT_FILE
+}
+
+# --- Create Inventory Function to Join a Master ---
+function inventoryMaster {
+    
+    rm -rf $OUTPUT_FILE;
+    # Master
+    echo "[master]" >> "$OUTPUT_FILE"
+    echo "$ip_master" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+
+    # Node To Join
+    echo "[join]" >> "$OUTPUT_FILE"
+    echo "$ip_to_join" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+
+    # All IPs
+    echo "[all_vms:children]" >> "$OUTPUT_FILE"
+    echo "master" >> "$OUTPUT_FILE"
+    echo "join" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+
+    # Credentials and Attributes
+    echo "[all_vms:vars]" >> "$OUTPUT_FILE"
+    echo "ansible_user=$username" >> "$OUTPUT_FILE"
+    echo "ansible_ssh_pass=$passwd" >> "$OUTPUT_FILE"
+    echo "ansible_become_pass=$passwd" >> "$OUTPUT_FILE"
+    echo "vip_ip=$vip_ip" >> "$OUTPUT_FILE"
+    echo "master_ip=$ip_master" >> "$OUTPUT_FILE"
+    echo "ip_to_join=$ip_to_join" >> "$OUTPUT_FILE"
+    echo "cri=$cri" >> "$OUTPUT_FILE"
+    echo "username=$username" >> "$OUTPUT_FILE"
+    echo "passwd=$passwd" >> "$OUTPUT_FILE"
+
 }
 
 # --- Menu to Join a Master Node ---
