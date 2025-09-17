@@ -187,7 +187,7 @@ function confirm_page_join {
         1)
             CONFIRM=$(cat <<EOF
 Type of Node that is joining: Worker\n
-IP / VIP Master Node: $ip_master\n
+IP Master Node: $ip_master\n
 IP Node to Join: $ip_to_join\n
 Container Runtime used: $cri\n
 Credentials SSH sudoer\n
