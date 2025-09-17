@@ -48,6 +48,15 @@
         path: /etc/kubernetes/kubelet.conf
       register: kube_joined_status
 
+    - name: Cleanup previous manifests if any
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/kubernetes/manifests/kube-apiserver.yaml
+        - /etc/kubernetes/manifests/kube-controller-manager.yaml
+        - /etc/kubernetes/manifests/kube-scheduler.yaml
+
     - name: Ensure VIP DNS entry is present in /etc/hosts
       lineinfile:
         path: /etc/hosts
@@ -62,7 +71,13 @@
           'CRI-O': 'unix:///var/run/crio/crio.sock'
         }[cri] }}"
 
-    - name: Verify etcd health before joining a new control-plane (via VIP)
+    - name: Ensure kubelet is running
+      systemd:
+        name: "kubelet"
+        state: started
+        enabled: yes
+
+    - name: Verify ETCD health before joining a new control-plane
       shell: "KUBECONFIG=/etc/kubernetes/admin.conf kubectl get --raw='/readyz?verbose' | grep etcd"
       register: etcd_health_prejoin
       retries: 20
@@ -81,11 +96,14 @@
         --control-plane
         --apiserver-advertise-address={{ ansible_host }}
         --apiserver-bind-port=6443
+      retries: 3
+      delay: 10
+      until: master_join_result.rc == 0
       when:
         - not kube_joined_status.stat.exists
       register: master_join_result
 
-    - name: Wait until etcd cluster is healthy (via VIP)
+    - name: Wait until ETCD cluster is healthy
       shell: "KUBECONFIG=/etc/kubernetes/admin.conf kubectl get --raw='/readyz?verbose' | grep etcd"
       register: etcd_health_postjoin
       retries: 20
