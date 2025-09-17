@@ -6,8 +6,10 @@
     - name: Generate the join command
       ansible.builtin.command: kubeadm token create --print-join-command
       register: join_command_output
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
 
-    - name: Print the join command
+    - name: Set the join command as a fact
       ansible.builtin.set_fact:
         join_command: "{{ join_command_output.stdout.split() | join(' ') }}"
 
@@ -33,9 +35,4 @@
       when:
         - ansible_distribution_file_variety == "Debian"
         - not kube_joined_status.stat.exists
-      register: worker_join_result
-      
-    - name: Show join result
-      ansible.builtin.debug:
-        var: worker_join_result
 ...

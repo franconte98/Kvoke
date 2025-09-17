@@ -7,6 +7,13 @@ source ./environment.sh
 ##                                            Functions                                                                   ##
 ############################################################################################################################
 
+# --- Function called when interrupting the execution ---
+function cleanup() {
+  echo -e "\nCaught Ctrl+C! Cleaning up..."
+  rm -rf $OUTPUT_FILE
+  exit 130;
+}
+
 # --- Function called when aborting the execution ---
 function abortExec {
     rm -rf $OUTPUT_FILE
@@ -260,8 +267,8 @@ function JoinWorkerMenu {
         --msgbox "$WELCOME_JOIN_1" 30 100
 
     ### Master Node's IP
-    ip_master=$(whiptail --title "Select the Master Node's IP or VIP" \
-        --inputbox "Type the IP of either the Primary Node or the associated VIP." 10 60 \
+    ip_master=$(whiptail --title "Select a Master Node's IP" \
+        --inputbox "Type the IP of any Master Node in the Cluster." 10 60 \
         "192.168.0.100" \
         3>&1 1>&2 2>&3)
     
@@ -387,7 +394,7 @@ function inventoryMaster {
 function JoinMasterMenu {
 
     whiptail --title "Joining a Master Node to a Kvoke Cluster" \
-        --msgbox "$WELCOME_JOIN_1" 30 100
+        --msgbox "$WELCOME_JOIN_2" 30 100
 
     ### Master Node's IP
     vip_ip=$(whiptail --title "Select the VIP" \
@@ -1031,6 +1038,7 @@ function initStacked {
 ##                                            Executive Section                                                           ##
 ############################################################################################################################
 
+trap cleanup SIGINT SIGTERM
 mkdir /var/log/kvoke/
 touch /var/log/kvoke/kvoke.logs
 clear

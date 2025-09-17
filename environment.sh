@@ -76,7 +76,7 @@ VM REQUIREMENTS:
 EOF
 )
 
-WELCOME_JOIN_1=$(cat <<'EOF'
+WELCOME_JOIN_2=$(cat <<'EOF'
 This script prepares and joins a master node to a Kvoke cluster. 
 It automates the entire process, including the installation of necessary tools, 
 the configuration of the container runtime, and the final joining of the node to the cluster.
