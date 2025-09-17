@@ -330,6 +330,15 @@ function initJoinWorker {
         abortExec
     fi
 
+    ### Check if the node is already part of a K8S Cluster 
+    log "Testing if the Node is already part of a K8S Cluster"
+    ansible $ip_to_join -b -m shell -a "test -f /etc/kubernetes/kubelet.conf" -e 'ansible_python_interpreter=/usr/bin/python3'
+    if [ $? -eq 0 ]; then
+        echo -e "${NC}${RED}ERRORE:${NC} The node seems to be already part of a K8S Cluster! ${NC}${RED}ABORT.${NC}"
+        log "ERROR: The node seems to be already part of a K8S Cluster"
+        abortExec
+    fi
+
     ### Playbook w// init.sh
     log "Initiating the Node to Join"
     ansible-playbook ./Config/Join/Worker/playbook_init.yaml;
