@@ -31,7 +31,7 @@
       ansible.builtin.apt:
         name: keepalived
         state: present
-        update_cache: yes # Update apt cache before installing
+        update_cache: yes
 
     - name: Create keepalived.conf file
       ansible.builtin.copy:
@@ -45,10 +45,10 @@
           }
 
           vrrp_script chk_script {
-              script "/usr/bin/curl --silent --max-time 30 --insecure https://127.0.0.1:6443/readyz -o /dev/null"
-              interval 20 # check every 3 second
-              fall 3 # require 2 failures for OK
-              rise 2 # require 2 successes for OK
+              script "/usr/bin/curl -k --silent --max-time 5 https://127.0.0.1:6443/healthz -o /dev/null --fail"
+              interval 10
+              fall 3
+              rise 2
           }
 
           vrrp_instance lb-vips {
@@ -57,7 +57,6 @@
               virtual_router_id 206
               priority 100
               advert_int 1
-              nopreempt # Prevent fail-back
               track_script {
                   chk_script
               }
