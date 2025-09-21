@@ -114,7 +114,7 @@ For optimal performance and minimal latency, it's recommended that you run Kvoke
 
 - <b>To Create a Cluster:</b> Run Kvoke from a machine on the same network as your virtual machines. The script will guide you through the process of setting up your desired cluster topology.
 
-- <b>To Join a Node:</b> Execute Kvoke directly on the node you wish to add to an existing cluster. Follow the on-screen prompts and select the "Join" option when prompted.
+- <b>To Join a Node:</b> Execute Kvoke if you wish to add a node to an existing Kvoke cluster. Follow the on-screen prompts and select the "Join" option when prompted.
 
 ## About Kvoke
 
@@ -158,4 +158,5 @@ Distributed under the BSD-3-Clause license License. See `LICENSE` for more infor
 [issues-url]: https://github.com/franconte98/Kvoke/issues
 [license-shield]: https://img.shields.io/badge/License-BSD%203--Clause-blue.svg?style=for-the-badge
 [license-url]: https://github.com/franconte98/Kvoke/blob/main/LICENSE
+
 [product-screenshot]: images/screenshot.png
