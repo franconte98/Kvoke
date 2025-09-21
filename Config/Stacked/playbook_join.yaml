@@ -51,7 +51,7 @@
   become: true
   become_method: sudo
   tasks:
-    - name: Check if {{ ansible_host }} is already joined
+    - name: Check if the actual node is already joined
       stat:
         path: /etc/kubernetes/kubelet.conf
       register: kube_joined_status
@@ -76,7 +76,7 @@
         - inventory_hostname != groups['masters'][0]
         - not kube_joined_status.stat.exists
 
-    - name: Join Master Node {{ ansible_host }}
+    - name: Join actual Master Node
       ansible.builtin.shell: >
         {{ hostvars[groups['masters'][0]]['join_command'] }}
         --certificate-key {{ hostvars[groups['masters'][0]]['kubeadm_certificate_key'] }}
@@ -104,7 +104,7 @@
   become: true
   become_method: sudo
   tasks:
-    - name: Check if {{ ansible_host }} is already joined
+    - name: Check if the actual node is already joined
       stat:
         path: /etc/kubernetes/kubelet.conf
       register: kube_joined_status

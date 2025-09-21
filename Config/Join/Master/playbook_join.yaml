@@ -98,6 +98,58 @@
     - name: Save discovery_token_ca_cert_hash as host fact on VIP master
       ansible.builtin.set_fact:
         discovery_token_ca_cert_hash_local: "{{ ca_cert_hash_output.stdout }}"
+    
+    - name: Get etcd pod names
+      ansible.builtin.shell: |
+        kubectl get pods -n kube-system -l component=etcd -o jsonpath='{.items[*].metadata.name}'
+      register: etcd_pods
+      changed_when: false
+
+    - name: Set etcd pods as host fact
+      ansible.builtin.set_fact:
+        etcd_pod_names: "{{ etcd_pods.stdout.split() }}"
+
+    - name: Show etcd pods found
+      ansible.builtin.debug:
+        var: etcd_pod_names
+
+    - name: Get etcd member list in JSON (on one arbitrary etcd)
+      ansible.builtin.shell: |
+        kubectl exec -n kube-system {{ etcd_pod_names[0] }} -- \
+          etcdctl member list -w json \
+          --cacert /etc/kubernetes/pki/etcd/ca.crt \
+          --cert /etc/kubernetes/pki/etcd/peer.crt \
+          --key /etc/kubernetes/pki/etcd/peer.key
+      register: etcd_members_json
+      changed_when: false
+
+    - name: Save members.json locally for debug
+      ansible.builtin.copy:
+        dest: /tmp/members.json
+        content: "{{ etcd_members_json.stdout }}"
+        mode: '0644'
+
+    - name: Extract IDs of faulty etcd members (hex format, without 0x)
+      ansible.builtin.shell: |
+        echo '{{ etcd_members_json.stdout }}' | \
+        jq -r '.members[] | select(.state=="unstarted" or (.isLearner?==true)) | .ID' | \
+        while read id; do printf "%x\n" $id; done
+      register: bad_member_ids
+      changed_when: false
+
+    - name: Debug faulty IDs (hex format)
+      ansible.builtin.debug:
+        var: bad_member_ids.stdout_lines
+
+    - name: Remove faulty etcd members
+      ansible.builtin.shell: |
+        kubectl exec -n kube-system {{ etcd_pod_names[0] }} -- \
+          etcdctl member remove {{ item }} \
+          --cacert /etc/kubernetes/pki/etcd/ca.crt \
+          --cert /etc/kubernetes/pki/etcd/peer.crt \
+          --key /etc/kubernetes/pki/etcd/peer.key
+      loop: "{{ bad_member_ids.stdout_lines }}"
+      when: bad_member_ids.stdout_lines | length > 0
 
 - name: Prepare and join target node as control-plane
   hosts: join[0]
