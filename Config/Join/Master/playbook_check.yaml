@@ -1,0 +1,21 @@
+---
+- name: Check if node is already part of a K8S Cluster
+  hosts: all
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Check if kubelet.conf exists
+      ansible.builtin.stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: kubelet_conf
+
+    - name: Fail if node is already part of a K8S Cluster
+      ansible.builtin.fail:
+        msg: "ERRORE: The node seems to be already part of a K8S Cluster! ABORT."
+      when: kubelet_conf.stat.exists
+
+    - name: Debug if node is clean
+      ansible.builtin.debug:
+        msg: "The node is clean, ready to join the cluster."
+      when: not kubelet_conf.stat.exists
+...

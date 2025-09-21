@@ -1,0 +1,31 @@
+--- 
+- name: Gather master nodes IPs directly from Kubernetes 
+  hosts: all 
+  become: true 
+  become_method: sudo 
+  tasks: 
+    - name: Get control-plane nodes IPs with kubectl in JSON 
+      ansible.builtin.command: > 
+        kubectl get nodes -l node-role.kubernetes.io/control-plane -o jsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}' 
+      register: masters_raw 
+      changed_when: false
+
+    - name: Convert IP string to list 
+      ansible.builtin.set_fact: 
+        master_ips: "{{ masters_raw.stdout.split() }}" 
+    
+    - name: Show collected master IPs 
+      ansible.builtin.debug: 
+        var: master_ips 
+    
+    - name: Build inventory file dynamically 
+      ansible.builtin.copy: 
+        dest: /tmp/inventory.ini 
+        content: | 
+          [masters] 
+          {% for ip in master_ips %} 
+          {{ ip }} 
+          {% endfor %}
+      delegate_to: localhost
+      run_once: true
+...
