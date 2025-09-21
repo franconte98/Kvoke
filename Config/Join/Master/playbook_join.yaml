@@ -1,9 +1,54 @@
----
-- hosts: master[0]
+- name: Detect which master owns the VIP
+  hosts: masters
+  gather_facts: false
   become: true
-  become_method: sudo
   tasks:
-    - name: Wait for the API to be reachable via VIP
+    - name: Check if VIP is present on this node (non-fatal)
+      ansible.builtin.shell: "ip addr show | grep -w {{ vip_ip }}"
+      register: vip_check
+      ignore_errors: true
+      changed_when: false
+
+    - name: Mark this host as VIP owner if found
+      ansible.builtin.set_fact:
+        is_vip_master: true
+      when: vip_check.rc == 0
+
+- name: Determine VIP master on controller and create vip_master group
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Find the host that reported is_vip_master (run once)
+      set_fact:
+        found_vip_host: "{{ item }}"
+      loop: "{{ groups['masters'] }}"
+      when: hostvars[item].is_vip_master is defined and hostvars[item].is_vip_master
+      run_once: true
+
+    - name: Fail if we could not determine vip_master
+      ansible.builtin.fail:
+        msg: >-
+          Could not find any master with the VIP {{ vip_ip }}.
+          Make sure keepalived (or equivalent) is running and VIP is configured.
+      when: found_vip_host is not defined or found_vip_host == ""
+
+    - name: Create dynamic group 'vip_master' with the detected host (run_once)
+      add_host:
+        name: "{{ found_vip_host }}"
+        groups: vip_master
+        ansible_host: "{{ hostvars[found_vip_host].ansible_host | default(found_vip_host) }}"
+      run_once: true
+
+    - name: Show selected vip_master
+      ansible.builtin.debug:
+        msg: "Detected VIP owner: {{ found_vip_host }}"
+
+- name: Prepare join command and upload certs on the VIP master
+  hosts: vip_master
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Wait for API reachable via VIP (local check on vip_master)
       ansible.builtin.wait_for:
         host: "{{ vip_ip }}"
         port: 6443
@@ -11,108 +56,176 @@
         timeout: 120
         state: started
 
-    - name: Generate the join command (via VIP)
-      ansible.builtin.command: kubeadm token create --print-join-command
-      register: join_command_output
+    - name: Generate a new bootstrap token
+      ansible.builtin.command: kubeadm token create
+      register: token_output
       environment:
         KUBECONFIG: /etc/kubernetes/admin.conf
+      changed_when: false
 
-    - name: Set the join command as a fact
+    - name: Save join token as host fact
       ansible.builtin.set_fact:
-        join_command: "{{ join_command_output.stdout.split() | join(' ') }}"
+        join_token_local: "{{ token_output.stdout }}"
 
-    - name: Run kubeadm upload-certs (valid via VIP)
-      shell: kubeadm init phase upload-certs --upload-certs
+    - name: Upload certs on VIP master (upload-certs)
+      ansible.builtin.command: kubeadm init phase upload-certs --upload-certs
       register: upload_certs
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
       changed_when: "'certificate key' in upload_certs.stdout"
       failed_when: upload_certs.rc != 0 and "'already uploaded' not in upload_certs.stderr"
-      environment:
-        KUBECONFIG: /etc/kubernetes/admin.conf
 
-    - name: Extract certificate key from output
-      set_fact:
-        kubeadm_certificate_key: "{{ (upload_certs.stdout | regex_search('(?mi)certificate key:\\s*(\\S+)', '\\1'))[0] }}"
+    - name: Extract certificate key and save as host fact on VIP master
+      ansible.builtin.set_fact:
+        kubeadm_certificate_key_local: "{{ (upload_certs.stdout | regex_search('(?mi)certificate key:\\s*(\\S+)', '\\1'))[0] }}"
       when: upload_certs.stdout is defined
 
-    - name: Fail if we couldn't extract certificate key
-      fail:
-        msg: "Unable to extract kubeadm certificate key. Output: {{ upload_certs.stdout }} {{ upload_certs.stderr }}"
-      when: kubeadm_certificate_key is not defined
+    - name: Debug join token and cert key (vip_master)
+      ansible.builtin.debug:
+        msg:
+          - "join_token_local={{ join_token_local | default('MISSING') }}"
+          - "kubeadm_certificate_key_local={{ kubeadm_certificate_key_local | default('MISSING') }}"
 
-- hosts: join[0]
+    - name: Get discovery_token_ca_cert_hash from VIP master
+      ansible.builtin.shell: >
+        openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt |
+        openssl rsa -pubin -outform der 2>/dev/null |
+        openssl dgst -sha256 -hex |
+        sed 's/^.* //'
+      register: ca_cert_hash_output
+      changed_when: false
+
+    - name: Save discovery_token_ca_cert_hash as host fact on VIP master
+      ansible.builtin.set_fact:
+        discovery_token_ca_cert_hash_local: "{{ ca_cert_hash_output.stdout }}"
+
+- name: Prepare and join target node as control-plane
+  hosts: join[0]
+  gather_facts: true
   become: true
   become_method: sudo
   tasks:
-    - name: Check if node is already joined
-      stat:
-        path: /etc/kubernetes/kubelet.conf
-      register: kube_joined_status
+    - name: Ensure CRI socket variable is resolved
+      ansible.builtin.set_fact:
+        cri_socket: >-
+          {{ {
+            'Docker': 'unix:///var/run/cri-dockerd.sock',
+            'Containerd': 'unix:///run/containerd/containerd.sock',
+            'CRI-O': 'unix:///var/run/crio/crio.sock'
+          }[cri] }}
 
-    - name: Cleanup previous manifests if any
-      file:
-        path: "{{ item }}"
-        state: absent
-      loop:
-        - /etc/kubernetes/manifests/kube-apiserver.yaml
-        - /etc/kubernetes/manifests/kube-controller-manager.yaml
-        - /etc/kubernetes/manifests/kube-scheduler.yaml
+    - name: Retrieve join_token, cert key and hash from vip_master hostvars
+      ansible.builtin.set_fact:
+        join_token: "{{ hostvars[groups['vip_master'] | first].join_token_local | default('') }}"
+        kubeadm_certificate_key: "{{ hostvars[groups['vip_master'] | first].kubeadm_certificate_key_local | default('') }}"
+        discovery_token_ca_cert_hash: "{{ hostvars[groups['vip_master'] | first].discovery_token_ca_cert_hash_local | default('') }}"
+    
+    - name: Safe RESET and CLEANUP
+      block:
+        - name: Mask kubelet service to prevent auto-restart
+          ansible.builtin.systemd:
+            name: kubelet
+            masked: true
+            daemon_reload: yes
+          ignore_errors: true
 
-    - name: Ensure VIP DNS entry is present in /etc/hosts
-      lineinfile:
+        - name: Disable kubelet service
+          ansible.builtin.systemd:
+            name: kubelet
+            enabled: false
+          ignore_errors: true
+
+        - name: Stop kubelet service
+          ansible.builtin.systemd:
+            name: kubelet
+            state: stopped
+            daemon_reload: yes
+          ignore_errors: true
+
+        - name: Forcefully remove Kubernetes manifests and other files
+          ansible.builtin.shell: |
+            if [ -d /etc/kubernetes/manifests ]; then
+              chattr -i /etc/kubernetes/manifests/*.yaml || true
+              rm -rf /etc/kubernetes/manifests
+            fi
+            rm -rf /etc/kubernetes/pki /etc/kubernetes/admin.conf /etc/kubernetes/kubelet.conf /var/lib/etcd /var/lib/kubelet
+          ignore_errors: true
+
+        - name: Run kubeadm reset -f (ignore failure)
+          ansible.builtin.command: "kubeadm reset -f --cri-socket {{ cri_socket }}"
+          failed_when: false
+
+        - name: Recreate etcd dir
+          ansible.builtin.file:
+            path: /var/lib/etcd
+            state: directory
+            mode: '0700'
+        
+        - name: Recreate kubelet dir
+          ansible.builtin.file:
+            path: /var/lib/kubelet
+            state: directory
+            mode: '0755'
+      
+    - name: Ensure VIP hostname entry in /etc/hosts
+      ansible.builtin.lineinfile:
         path: /etc/hosts
-        line: "{{ vip_ip }}   kvoke-vip"
+        line: "{{ vip_ip }}     kvoke-vip"
         state: present
 
-    - name: Set the CRI Socket Path
-      ansible.builtin.set_fact:
-        cri_socket: "{{ {
-          'Docker': 'unix:///var/run/cri-dockerd.sock',
-          'Containerd': 'unix:///run/containerd/containerd.sock',
-          'CRI-O': 'unix:///var/run/crio/crio.sock'
-        }[cri] }}"
+    - name: Create kubeadm-config.yaml on the joining node (inline)
+      ansible.builtin.copy:
+        dest: /etc/kubernetes/kubeadm-config.yaml
+        mode: '0644'
+        content: |
+          apiVersion: kubeadm.k8s.io/v1beta4
+          kind: JoinConfiguration
+          discovery:
+            bootstrapToken:
+              apiServerEndpoint: "{{ vip_ip }}:6443"
+              token: "{{ join_token }}"
+              caCertHashes:
+                - "sha256:{{ discovery_token_ca_cert_hash }}"
+            tlsBootstrapToken: "{{ join_token }}"
+          controlPlane:
+            localAPIEndpoint:
+              advertiseAddress: "{{ ansible_host }}"
+              bindPort: 6443
+            certificateKey: "{{ kubeadm_certificate_key }}"
+          nodeRegistration:
+            criSocket: "{{ cri_socket }}"
+            name: "{{ ansible_hostname }}"
+      register: kubeadm_config_copy_result
 
-    - name: Ensure kubelet is running
-      systemd:
-        name: "kubelet"
-        state: started
-        enabled: yes
+    - name: Show created kubeadm config
+      ansible.builtin.slurp:
+        src: /etc/kubernetes/kubeadm-config.yaml
+      register: kubeadm_config_content
 
-    - name: Verify ETCD health before joining a new control-plane
-      shell: "KUBECONFIG=/etc/kubernetes/admin.conf kubectl get --raw='/readyz?verbose' | grep etcd"
-      register: etcd_health_prejoin
-      retries: 20
-      delay: 15
-      until: etcd_health_prejoin.rc == 0
-      delegate_to: "{{ groups['master'][0] }}"
-      become_user: root
-      when:
-        - not kube_joined_status.stat.exists
-
-    - name: Join Master Nodes (except the first one)
-      ansible.builtin.shell: >
-        {{ hostvars[groups['master'][0]]['join_command'] }}
-        --certificate-key {{ hostvars[groups['master'][0]]['kubeadm_certificate_key'] }}
-        --cri-socket={{ cri_socket }}
-        --control-plane
-        --apiserver-advertise-address={{ ansible_host }}
-        --apiserver-bind-port=6443
-      retries: 3
-      delay: 10
-      until: master_join_result.rc == 0
-      when:
-        - not kube_joined_status.stat.exists
-      register: master_join_result
-
-    - name: Wait until ETCD cluster is healthy
-      shell: "KUBECONFIG=/etc/kubernetes/admin.conf kubectl get --raw='/readyz?verbose' | grep etcd"
-      register: etcd_health_postjoin
-      retries: 20
-      delay: 15
-      until: etcd_health_postjoin.rc == 0
-      delegate_to: "{{ groups['master'][0] }}"
-      become_user: root
-
-    - name: Show Join Result Masters
+    - name: Debug kubeadm config file content
       ansible.builtin.debug:
-        var: master_join_result
-...
+        var: kubeadm_config_content.content | b64decode
+
+    - name: Fail if join_token or certificate_key not available
+      ansible.builtin.fail:
+        msg: "join_token or kubeadm_certificate_key not found from VIP master."
+      when: join_token == '' or kubeadm_certificate_key == ''
+
+    - name: Unmask and start kubelet service before join
+      ansible.builtin.systemd:
+        name: kubelet
+        masked: false
+        enabled: true
+        state: started
+        daemon_reload: yes
+      ignore_errors: true
+
+    - name: Run kubeadm join command
+      ansible.builtin.command: >
+        kubeadm join --config /etc/kubernetes/kubeadm-config.yaml
+      register: join_result
+      changed_when: true
+
+    - name: Show join result
+      ansible.builtin.debug:
+        var: join_result

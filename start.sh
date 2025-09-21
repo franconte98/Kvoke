@@ -17,7 +17,7 @@ function cleanup() {
 # --- Function called when aborting the execution ---
 function abortExec {
     rm -rf $OUTPUT_FILE
-    echo "Aborting the execution of Kinit. Check the logs in $OUTPUT_LOGS"
+    echo "Aborting the execution of Kvoke. Check the logs in $OUTPUT_LOGS"
     exit 1;
 }
 
@@ -173,14 +173,14 @@ function confirmJoin {
 function mainMenu {
 
     # --- 1. Welcome! ---
-    whiptail --title "KINIT - the K8S OnPremise Cluster Initiator!" \
+    whiptail --title "Kvoke - the K8S OnPremise Cluster Initiator!" \
             --msgbox "$WELCOME_MESSAGE" 30 100
 
     # --- First Choice ---
     CHOICE=$(whiptail --title "Choose an Option" \
         --menu "Select what you wanna do right now." 20 70 2 \
-        "1" "Create a Kinit Cluster" \
-        "2" "Join a Node to a Kinit Cluster" \
+        "1" "Create a Kvoke Cluster" \
+        "2" "Join a Node to a Kvoke Cluster" \
         3>&1 1>&2 2>&3)
 
     # --- Routing w// switch ---
@@ -369,9 +369,8 @@ function initJoinWorker {
 function inventoryMaster {
     
     rm -rf $OUTPUT_FILE;
-    # Master
-    echo "[master]" >> "$OUTPUT_FILE"
-    echo "$ip_master" >> "$OUTPUT_FILE"
+    # Masters
+    cat /tmp/inventory.ini > "$OUTPUT_FILE"
     echo "" >> "$OUTPUT_FILE"
 
     # Node To Join
@@ -381,7 +380,7 @@ function inventoryMaster {
 
     # All IPs
     echo "[all_vms:children]" >> "$OUTPUT_FILE"
-    echo "master" >> "$OUTPUT_FILE"
+    echo "masters" >> "$OUTPUT_FILE"
     echo "join" >> "$OUTPUT_FILE"
     echo "" >> "$OUTPUT_FILE"
 
@@ -396,6 +395,22 @@ function inventoryMaster {
     echo "cri=$cri" >> "$OUTPUT_FILE"
     echo "username=$username" >> "$OUTPUT_FILE"
     echo "passwd=$passwd" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+
+    echo "[localhost]" >> "$OUTPUT_FILE"
+    echo "127.0.0.1 ansible_connection=local" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+
+    # Credentials and Attributes
+    echo "[localhost:vars]" >> "$OUTPUT_FILE"
+    echo "vip_ip=$vip_ip" >> "$OUTPUT_FILE"
+    echo "master_ip=$ip_master" >> "$OUTPUT_FILE"
+    echo "ip_to_join=$ip_to_join" >> "$OUTPUT_FILE"
+    echo "cri=$cri" >> "$OUTPUT_FILE"
+    echo "username=$username" >> "$OUTPUT_FILE"
+    echo "passwd=$passwd" >> "$OUTPUT_FILE"
+
+    rm -rf /tmp/inventory.ini;
 
 }
 
@@ -462,6 +477,12 @@ function initJoinMaster {
     ### Enabling Scripts (Bash) on the HOST
     chmod +x Config/init.sh Config/Join/Master/*
 
+    ### Check if the node is already part of a K8S Cluster 
+    ansible-playbook -i $ip_to_join, ./Config/Join/Master/playbook_check.yaml -u $username --become --extra-vars "ansible_ssh_pass=$passwd ansible_become_pass=$passwd"
+
+    ### Retreive necessary informations regards the control planes in the cluster
+    ansible-playbook -i $ip_master, ./Config/Join/Master/playbook_get_masters.yaml -u $username --become --extra-vars "ansible_ssh_pass=$passwd ansible_become_pass=$passwd"
+
     ### Ansible Inventory creation
     inventoryMaster
 
@@ -471,15 +492,6 @@ function initJoinMaster {
     if [ $? -ne 0 ]; then
         echo -e "${NC}${RED}ERROR:${NC} Some VMs are not reachable by Ansible! ${NC}${RED}ABORT.${NC}"
         log "ERROR: Some VMs are not reachable by Ansible!"
-        abortExec
-    fi
-
-    ### Check if the node is already part of a K8S Cluster 
-    log "Testing if the Node is already part of a K8S Cluster"
-    ansible $ip_to_join -b -m shell -a "test -f /etc/kubernetes/kubelet.conf" -e 'ansible_python_interpreter=/usr/bin/python3'
-    if [ $? -eq 0 ]; then
-        echo -e "${NC}${RED}ERRORE:${NC} The node seems to be already part of a K8S Cluster! ${NC}${RED}ABORT.${NC}"
-        log "ERROR: The node seems to be already part of a K8S Cluster"
         abortExec
     fi
 
@@ -493,7 +505,7 @@ function initJoinMaster {
     fi
 
     ### Playbook for Joining
-    log "Joining all the Nodes in the Cluster"
+    log "Joining the Node in the Cluster"
     ansible-playbook ./Config/Join/Master/playbook_join.yaml;
     if [ $? -ne 0 ]; then
         echo -e "${NC}${RED}ERROR:${NC} Something went wrong Joining the Nodes in the Cluster! ${NC}${RED}ABORT.${NC}"
@@ -546,7 +558,7 @@ function createMenu {
 
     # --- First Option for Creation ---
     CONF_CHOICE=$(whiptail --title "Configuration Options" \
-        --menu "Based on the documentation, select which configuration you wanna instantiate for your Kinit cluster." 20 70 3 \
+        --menu "Based on the documentation, select which configuration you wanna instantiate for your Kvoke cluster." 20 70 3 \
         "1" "Simple Configuration (NON-HA)" \
         "2" "Stacked Configuration (HA)" \
         3>&1 1>&2 2>&3)

@@ -30,7 +30,7 @@
           'CRI-O': 'unix:///var/run/crio/crio.sock'
         }[cri] }}"
 
-    - name: Verify etcd health before joining a new control-plane (via VIP)
+    - name: Verify etcd health before joining a new control-plane
       shell: "KUBECONFIG=/etc/kubernetes/admin.conf kubectl get --raw='/readyz?verbose' | grep etcd"
       register: etcd_health_prejoin
       retries: 20
@@ -47,7 +47,7 @@
         - ansible_distribution_file_variety == "Debian"
         - not kube_joined_status.stat.exists
 
-    - name: Wait until etcd cluster is healthy (via VIP)
+    - name: Wait until etcd cluster is healthy
       shell: "KUBECONFIG=/etc/kubernetes/admin.conf kubectl get --raw='/readyz?verbose' | grep etcd"
       register: etcd_health_postjoin
       retries: 20
