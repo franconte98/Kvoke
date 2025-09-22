@@ -1,8 +1,8 @@
 <a id="readme-top"></a>
 
 [![Contributors][contributors-shield]][contributors-url]
-[![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
+[![Forks][forks-shield]][forks-url]
 [![Issues][issues-shield]][issues-url]
 [![License: BSD 3-Clause][license-shield]][license-url]
 
