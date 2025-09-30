@@ -1,0 +1,72 @@
+---
+- hosts: masters[0]
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Configure MetalLB IP Address Pool
+      ansible.builtin.shell: |
+        cat <<EOF | kubectl apply -f -
+        apiVersion: metallb.io/v1beta1
+        kind: IPAddressPool
+        metadata:
+          name: first-pool
+          namespace: metallb-system
+        spec:
+          addresses:
+          - {{ show_range }}
+          autoAssign: true
+        ---
+        apiVersion: metallb.io/v1beta1
+        kind: L2Advertisement
+        metadata:
+          name: l2
+          namespace: metallb-system
+        spec:
+          ipAddressPools:
+          - first-pool
+        ---
+        apiVersion: metallb.io/v1beta1
+        kind: BGPAdvertisement
+        metadata:
+          name: example
+          namespace: metallb-system
+        spec:
+          ipAddressPools:
+          - first-pool
+        EOF
+      args:
+        executable: /bin/bash
+      when: ansible_distribution_file_variety == "Debian"
+      register: lb_result
+
+    - name: Show Ip Address Pool Creation Result
+      ansible.builtin.debug:
+        var: lb_result
+    
+    - name: Wait for dpkg lock release
+      shell: |
+        while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+          sleep 5
+        done
+      retries: 30
+      delay: 10
+      register: wait_dpkg
+      until: wait_dpkg.rc == 0
+
+    - name: Ensure snapd is installed
+      ansible.builtin.package:
+        name: snapd
+        state: present
+
+    - name: Install k9s via snap
+      community.general.snap:
+        name: k9s
+        state: present
+
+    - name: Ensure symlink for k9s in /snap/bin
+      ansible.builtin.file:
+        src: /snap/k9s/current/bin/k9s
+        dest: /snap/bin/k9s
+        state: link
+        force: true
+...

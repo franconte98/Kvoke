@@ -1,0 +1,135 @@
+---
+- name: Configure all the necessary pre-steps on the Master Node
+  hosts: masters[0]
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Wait for the API to be reachable in the Master Node
+      ansible.builtin.wait_for:
+        host: "{{ ansible_host }}"
+        port: 6443
+        delay: 5
+        timeout: 120
+        state: started
+
+    - name: Wait for the API to be reachable via VIP
+      ansible.builtin.wait_for:
+        host: "{{ vip_ip }}"
+        port: 6443
+        delay: 5
+        timeout: 120
+        state: started
+        
+    - name: Generate the join command
+      ansible.builtin.command: kubeadm token create --print-join-command
+      register: join_command_output
+
+    - name: Set the join command as a fact
+      ansible.builtin.set_fact:
+        join_command: "{{ join_command_output.stdout.split() | join(' ') }}"
+    
+    - name: Run kubeadm upload-certs on the Master Node
+      become: true
+      shell: kubeadm init phase upload-certs --upload-certs
+      register: upload_certs
+      changed_when: "'certificate key' in upload_certs.stdout"
+      failed_when: upload_certs.rc != 0 and "'already uploaded' not in upload_certs.stderr"
+
+    - name: Extract certificate key from output
+      set_fact:
+        kubeadm_certificate_key: "{{ (upload_certs.stdout | regex_search('(?mi)certificate key:\\s*(\\S+)', '\\1'))[0] }}"
+      when: upload_certs.stdout is defined
+
+    - name: Fail if we couldn't extract certificate key
+      fail:
+        msg: "Unable to extract kubeadm certificate key. Output: {{ upload_certs.stdout }} {{ upload_certs.stderr }}"
+      when: kubeadm_certificate_key is not defined
+
+- name: Joining all the Master Nodes to the Cluster
+  hosts: masters
+  serial: 1
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Check if {{ ansible_host }} is already joined
+      stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: kube_joined_status
+
+    - name: Set the CRI Socket Path
+      ansible.builtin.set_fact:
+        cri_socket: "{{ {
+          'Docker': 'unix:///var/run/cri-dockerd.sock',
+          'Containerd': 'unix:///run/containerd/containerd.sock',
+          'CRI-O': 'unix:///var/run/crio/crio.sock'
+        }[cri] }}"
+
+    - name: Verify etcd health before joining a new control-plane
+      shell: "KUBECONFIG=/etc/kubernetes/admin.conf kubectl get --raw='/readyz?verbose' | grep etcd"
+      register: etcd_health_prejoin
+      retries: 20
+      delay: 15
+      until: etcd_health_prejoin.rc == 0
+      become_user: root
+      delegate_to: "{{ groups['masters'][0] }}"
+      when:
+        - inventory_hostname != groups['masters'][0]
+        - not kube_joined_status.stat.exists
+
+    - name: Join Master Node {{ ansible_host }}
+      ansible.builtin.shell: >
+        {{ hostvars[groups['masters'][0]]['join_command'] }}
+        --certificate-key {{ hostvars[groups['masters'][0]]['kubeadm_certificate_key'] }}
+        --cri-socket={{ cri_socket }}
+        --control-plane
+        --apiserver-advertise-address={{ ansible_host }}
+        --apiserver-bind-port=6443
+      when:
+        - inventory_hostname != groups['masters'][0]
+        - not kube_joined_status.stat.exists
+
+    - name: Wait until etcd cluster is healthy
+      shell: "KUBECONFIG=/etc/kubernetes/admin.conf kubectl get --raw='/readyz?verbose' | grep etcd"
+      register: etcd_health
+      retries: 40
+      delay: 15
+      until: etcd_health.rc == 0
+      become_user: root
+      delegate_to: "{{ groups['masters'][0] }}"
+      when:
+        - inventory_hostname != groups['masters'][0]
+
+- name: Joining all the Worker Nodes to the Cluster
+  hosts: workers
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Check if {{ ansible_host }} is already joined
+      stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: kube_joined_status
+
+    - name: Set the CRI Socket Path
+      ansible.builtin.set_fact:
+        cri_socket: "{{ {
+          'Docker': 'unix:///var/run/cri-dockerd.sock',
+          'Containerd': 'unix:///run/containerd/containerd.sock',
+          'CRI-O': 'unix:///var/run/crio/crio.sock'
+        }[cri] }}"
+
+    - name: Check API server is reachable before joining workers
+      shell: "KUBECONFIG=/etc/kubernetes/admin.conf kubectl get --raw='/healthz'"
+      register: apiserver_health
+      retries: 20
+      delay: 10
+      until: apiserver_health.rc == 0
+      become_user: root
+      delegate_to: "{{ groups['masters'][0] }}"        
+
+    - name: Join Worker Nodes
+      ansible.builtin.shell: >
+        {{ hostvars[groups['masters'][0]]['join_command'] }}
+        --cri-socket={{ cri_socket }}
+      when:
+        - not kube_joined_status.stat.exists
+...
