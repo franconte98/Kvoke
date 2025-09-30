@@ -15,7 +15,7 @@
 
 ## Overview
 
-Kvoke is a minimal, open-source Infrastructure as Code (IaC) tool designed to simplify the deployment of on-premise Kubernetes clusters. It eliminates the complexities of manual setup, allowing you to build a production-ready cluster with minimal effort.
+Kvoke is a minimal, open-source Infrastructure as Code (IaC) tool designed to simplify the deployment of Kubernetes Kubeadm clusters. It eliminates the complexities of manual setup, allowing you to build a production-ready cluster with minimal effort.
 
 Kvoke streamlines the entire process into a few simple steps:
 
@@ -158,4 +158,5 @@ Distributed under the BSD-3-Clause license License. See `LICENSE` for more infor
 [issues-url]: https://github.com/franconte98/Kvoke/issues
 [license-shield]: https://img.shields.io/badge/License-BSD%203--Clause-blue.svg?style=for-the-badge
 [license-url]: https://github.com/franconte98/Kvoke/blob/main/LICENSE
+
 [product-screenshot]: images/screenshot.png
