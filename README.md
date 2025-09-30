@@ -118,7 +118,7 @@ For optimal performance and minimal latency, it's recommended that you run Kvoke
 
 ## About Kvoke
 
-`Kvoke` offers a unique approach to on-premise Kubernetes deployment. Unlike solutions that abstract away the cluster's core components, `Kvoke` utilizes kubeadm to create a standard, vendor-neutral Kubernetes cluster. This means your cluster is built with the same robust tools you would use for a manual configuration, guaranteeing long-term stability and compatibility with the wider Kubernetes ecosystem.
+`Kvoke` offers a unique approach to Kubeadm Kubernetes deployment. Unlike solutions that abstract away the cluster's core components, `Kvoke` utilizes kubeadm to create a standard, vendor-neutral Kubernetes cluster. This means your cluster is built with the same robust tools you would use for a manual configuration, guaranteeing long-term stability and compatibility with the wider Kubernetes ecosystem.
 
 This method provides two key advantages:
 
@@ -160,3 +160,4 @@ Distributed under the BSD-3-Clause license License. See `LICENSE` for more infor
 [license-url]: https://github.com/franconte98/Kvoke/blob/main/LICENSE
 
 [product-screenshot]: images/screenshot.png
+
