@@ -1,0 +1,55 @@
+---
+- name: Configure all the necessary pre-steps on the Master Node
+  hosts: masters[0]
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Wait for the API to be reachable in the Node
+      ansible.builtin.wait_for:
+        host: "{{ ansible_host }}"
+        port: 6443
+        delay: 5
+        timeout: 120
+        state: started
+
+    - name: Generate the join command
+      ansible.builtin.command: kubeadm token create --print-join-command
+      register: join_command_output
+
+    - name: Print the join command
+      ansible.builtin.set_fact:
+        join_command: "{{ join_command_output.stdout.split() | join(' ') }}"
+
+- name: Joining all the Worker Nodes to the Cluster
+  hosts: workers
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Check if node is already joined
+      stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: kube_joined_status
+
+    - name: Set the CRI Socket Path
+      ansible.builtin.set_fact:
+        cri_socket: "{{ {
+          'Docker': 'unix:///var/run/cri-dockerd.sock',
+          'Containerd': 'unix:///run/containerd/containerd.sock',
+          'CRI-O': 'unix:///var/run/crio/crio.sock'
+        }[cri] }}"
+
+    - name: Check API server is reachable before joining workers
+      shell: "KUBECONFIG=/etc/kubernetes/admin.conf kubectl get --raw='/healthz'"
+      register: apiserver_health
+      retries: 20
+      delay: 10
+      until: apiserver_health.rc == 0
+      become_user: root
+      delegate_to: "{{ groups['masters'][0] }}"        
+
+    - name: Join the Worker Node
+      ansible.builtin.shell: "{{ hostvars[groups['masters'][0]]['join_command'] }} --cri-socket {{ cri_socket }}"
+      when:
+        - ansible_distribution_file_variety == "Debian"
+        - not kube_joined_status.stat.exists
+...

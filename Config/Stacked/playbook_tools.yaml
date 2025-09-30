@@ -1,0 +1,64 @@
+---
+- name: Installing Necessary Tools on the Cluster
+  hosts: masters[0]
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Wait for dpkg lock release
+      shell: |
+        while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+          sleep 5
+        done
+      retries: 30
+      delay: 10
+      register: wait_dpkg
+      until: wait_dpkg.rc == 0
+
+    - name: Store the initialization file on the Master Node
+      ansible.builtin.copy:
+        src: keepmaster.sh
+        dest: /tmp/keepmaster.sh
+        mode: '0755'
+      when: ansible_distribution_file_variety == "Debian"
+    
+    - name: Installing the additional tools
+      ansible.builtin.command: /tmp/keepmaster.sh {{ cri }}
+      when: ansible_distribution_file_variety == "Debian"
+      register: create_result
+
+    - name: Show Tools Installation Result
+      ansible.builtin.debug:
+        var: create_result
+
+- name: Installing K9S on each Master Node
+  hosts: masters
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Wait for dpkg lock release
+      shell: |
+        while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+          sleep 5
+        done
+      retries: 30
+      delay: 10
+      register: wait_dpkg
+      until: wait_dpkg.rc == 0
+
+    - name: Ensure snapd is installed
+      ansible.builtin.package:
+        name: snapd
+        state: present
+
+    - name: Install k9s via snap
+      community.general.snap:
+        name: k9s
+        state: present
+
+    - name: Ensure symlink for k9s in /snap/bin
+      ansible.builtin.file:
+        src: /snap/k9s/current/bin/k9s
+        dest: /snap/bin/k9s
+        state: link
+        force: true
+...

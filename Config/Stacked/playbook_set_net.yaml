@@ -1,0 +1,34 @@
+---
+- hosts: masters[0]
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Find the network interface for the primary IP
+      ansible.builtin.shell: |
+        ip a | grep {{ ansible_host }} | awk '{ print $NF }'
+      register: interface_output
+      changed_when: false
+
+    - name: Set the network interface name as a fact
+      ansible.builtin.set_fact:
+        network_interface: "{{ interface_output.stdout }}"
+
+    - name: Add the load balancer VIP to the found interface
+      ansible.builtin.shell: |
+        ip addr add {{ vip_ip }}/24 dev {{ network_interface }}
+      when: network_interface is defined
+
+    - name: Verify that the virtual VIP was added
+      ansible.builtin.shell: "ip a | grep '{{ vip_ip }}'"
+      changed_when: false
+
+    - name: Check if {{ vip_ip }} is active on {{ network_interface }}
+      ansible.builtin.shell: |
+        ip addr show dev {{ network_interface }} | grep -w "{{ vip_ip }}"
+      register: vip_check
+      failed_when: vip_check.rc != 0
+      retries: 5
+      delay: 3
+      until: vip_check.rc == 0
+      changed_when: false
+...
