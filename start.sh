@@ -17,7 +17,7 @@ function cleanup() {
 # --- Function called when aborting the execution ---
 function abortExec {
     rm -rf $OUTPUT_FILE
-    echo "Aborting the execution of Kinit. Check the logs in $OUTPUT_LOGS"
+    echo "Aborting the execution of Kvoke. Check the logs in $OUTPUT_LOGS"
     exit 1;
 }
 
@@ -173,14 +173,14 @@ function confirmJoin {
 function mainMenu {
 
     # --- 1. Welcome! ---
-    whiptail --title "KINIT - the K8S OnPremise Cluster Initiator!" \
+    whiptail --title "Kvoke - the K8S OnPremise Cluster Initiator!" \
             --msgbox "$WELCOME_MESSAGE" 30 100
 
     # --- First Choice ---
     CHOICE=$(whiptail --title "Choose an Option" \
         --menu "Select what you wanna do right now." 20 70 2 \
-        "1" "Create a Kinit Cluster" \
-        "2" "Join a Node to a Kinit Cluster" \
+        "1" "Create a Kvoke Cluster" \
+        "2" "Join a Node to a Kvoke Cluster" \
         3>&1 1>&2 2>&3)
 
     # --- Routing w// switch ---
@@ -546,7 +546,7 @@ function createMenu {
 
     # --- First Option for Creation ---
     CONF_CHOICE=$(whiptail --title "Configuration Options" \
-        --menu "Based on the documentation, select which configuration you wanna instantiate for your Kinit cluster." 20 70 3 \
+        --menu "Based on the documentation, select which configuration you wanna instantiate for your Kvoke cluster." 20 70 3 \
         "1" "Simple Configuration (NON-HA)" \
         "2" "Stacked Configuration (HA)" \
         3>&1 1>&2 2>&3)
